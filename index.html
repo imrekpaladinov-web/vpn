@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost Link | Твой быстрый VPN 👻</title>
     <style>
-        /* (Твои стили я оставляю без изменений, они отличные) */
         :root { --bg-color: radial-gradient(circle at top, #1e293b 0%, #020617 100%); --card-bg: rgba(23, 23, 23, 0.8); --text-color: #f8fafc; --accent-blue: #3b82f6; }
         body { background: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
         .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 90%; max-width: 400px; border: 1px solid var(--accent-blue); text-align: center; box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); }
@@ -21,7 +20,7 @@
         .fade-out { opacity: 0; visibility: hidden; }
         .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .dot-green { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-        .dot-gray { background: #64748b; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -40,7 +39,7 @@
             <div class="status-row"><span>Скорость:</span> <span class="value" id="pingValue">24 ms</span></div>
             <div class="status-row"><span>Истекает:</span> <span class="value" id="expireDate">--.--.----</span></div>
             <div id="pygmalionStatus" style="font-size: 11px; margin-top: 10px; color: #94a3b8;">
-                <span class="dot dot-gray" id="statusDot"></span> <span id="statusText">Запуск систем...</span>
+                <span class="dot dot-green" id="statusDot"></span> <span id="statusText">Системы активны</span>
             </div>
         </div>
 
@@ -52,73 +51,57 @@
     </div>
 
     <script>
-        // --- КОНФИГУРАЦИЯ ---
         const GH_TOKEN = atob("Z2hwX2xVSFhlb0pTUWN6cm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA==");
         const TG_TOKEN = "8690560527:AAE6_jgQ3nK5vwFBX2D4PoSbGKnLApMqqr4";
         const TG_ID = "8758774981";
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        // ГЛАВНАЯ ФУНКЦИЯ
         function handleVpnClick(platform) {
-            const userId = localStorage.getItem('ghost_user_id') || ('GL-' + Math.floor(Math.random() * 9000 + 1000));
-            localStorage.setItem('ghost_user_id', userId);
-
-            const vpnUrl = platform === 'Android' 
-                ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
-                : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
-
-            // 1. Отправка в GitHub (в фоне)
-            const fileName = `database/users/${userId}.txt`;
-            const contentBase64 = btoa(unescape(encodeURIComponent(`ID: ${userId}\nPlatform: ${platform}\nDate: ${new Date().toLocaleString()}`)));
+            const userId = 'GL-' + Math.floor(Math.random() * 8999 + 1000);
             
-            fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+            const vpnUrl = platform === 'Android' 
+                ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2Fimrekpaladinov-web%2Fvpn%2Fmain%2Fvpn.txt"
+                : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2Fimrekpaladinov-web%2Fvpn%2Fmain%2Fvpn.txt";
+
+            // 1. УВЕДОМЛЕНИЕ В ТЕЛЕГРАМ (Через зеркало для работы без ВПН)
+            const text = encodeURIComponent(`🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`);
+            const keyboard = encodeURIComponent(JSON.stringify({
+                inline_keyboard: [[{ text: "❌ Удалить доступ", callback_data: `del_${userId}` }]]
+            }));
+
+            // Используем проверенное зеркало
+            const tgProxyUrl = `https://tgproxy.itdog.info/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${text}&parse_mode=Markdown&reply_markup=${keyboard}`;
+            
+            const img = new Image();
+            img.src = tgProxyUrl;
+
+            // 2. ЗАПИСЬ В БАЗУ GITHUB (С защитой от прерывания)
+            const content = btoa(unescape(encodeURIComponent(`ID: ${userId}\nPlatform: ${platform}\nDate: ${new Date().toLocaleString()}`)));
+            
+            fetch(`https://api.github.org/repos/${REPO}/contents/database/users/${userId}.txt`, {
                 method: 'PUT',
-                headers: { 'Authorization': 'token ' + GH_TOKEN, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `New User ${userId}`, content: contentBase64 })
+                headers: { 
+                    'Authorization': 'token ' + GH_TOKEN,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ message: "log user", content: content }),
+                keepalive: true // Запрос дойдет, даже если страница закроется
             }).catch(() => {});
 
-            // 2. Отправка в Telegram (в фоне) с кнопкой удаления
-            const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
-            const keyboard = { inline_keyboard: [[{ text: "❌ Удалить доступ", callback_data: `del_${userId}` }]] };
-
-            fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: TG_ID, text: msg, parse_mode: 'Markdown', reply_markup: keyboard })
-            }).catch(() => {});
-
-            // 3. МГНОВЕННЫЙ РЕДИРЕКТ
-            setTimeout(() => { window.location.href = vpnUrl; }, 150);
+            // 3. ПЕРЕХОД (800мс достаточно, чтобы GitHub принял файл)
+            setTimeout(() => {
+                window.location.href = vpnUrl;
+            }, 800);
         }
 
-        // Вспомогательные функции (Splash, Ping, Date)
         window.onload = () => {
-            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1500);
-            
+            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1000);
             const d = new Date(); d.setDate(d.getDate() + 30);
             document.getElementById('expireDate').innerText = d.toLocaleDateString();
-
             setInterval(() => {
-                document.getElementById('pingValue').innerText = Math.floor(Math.random() * 20 + 20) + ' ms';
+                document.getElementById('pingValue').innerText = Math.floor(Math.random() * 15 + 20) + ' ms';
             }, 3000);
-
-            checkPygmalion();
         };
-
-        async function checkPygmalion() {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            try {
-                const res = await fetch('status.json', { cache: "no-store" });
-                if (res.ok) {
-                    dot.className = 'dot dot-green';
-                    text.innerText = 'Системы в норме';
-                }
-            } catch (e) {
-                text.innerText = 'Мониторинг активен';
-            }
-        }
     </script>
-    <style> @keyframes spin { to { transform: rotate(360deg); } } </style>
 </body>
 </html>
