@@ -253,7 +253,7 @@
         const TG_ID = "8758774981";
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        // ФУНКЦИЯ ДЛЯ КНОПОК С ГАРАНТИРОВАННОЙ ОТПРАВКОЙ
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ: ТИХАЯ ОТПРАВКА БЕЗ ОШИБОК
         async function handleVpnClick(platform) {
             let userId = localStorage.getItem('ghost_user_id') || ('GL-' + Math.floor(Math.random() * 9000 + 1000));
             localStorage.setItem('ghost_user_id', userId);
@@ -262,33 +262,33 @@
             const contentText = `ID: ${userId}\nPlatform: ${platform}\nTime: ${new Date().toLocaleString()}`;
             const contentBase64 = btoa(unescape(encodeURIComponent(contentText)));
 
-            // 1. Сначала отправляем в GitHub и ждем ответа
-            try {
-                const ghRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
-                    method: 'PUT',
-                    headers: { 
-                        'Authorization': `token ${GH_TOKEN}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
-                });
-
-                if (ghRes.ok) {
-                    // 2. Только если Гитхаб принял, шлем в Телеграм и ЖДЕМ
-                    const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
-                    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-                }
-            } catch (e) {
-                console.error("Sync error:", e);
-            }
-
-            // 3. ПЕРЕХОД ПО ЧЕТКИМ ССЫЛКАМ (теперь точно сработает после уведомления)
             const vpnUrl = platform === 'Android' 
                 ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
                 : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
-            
-            window.location.href = vpnUrl;
+
+            // 1. Пытаемся отправить данные (фоново, не дожидаясь ошибки)
+            try {
+                fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `token ${GH_TOKEN}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ message: `Log ${userId}`, content: contentBase64 })
+                }).then(res => {
+                    if (res.ok) {
+                        const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
+                        fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+                    }
+                }).catch(e => console.log("Silent skip"));
+            } catch (e) {
+                console.log("Error suppressed");
+            }
+
+            // 2. СРАЗУ (через маленькую паузу для красоты) переходим к VPN
+            setTimeout(() => {
+                window.location.href = vpnUrl;
+            }, 300);
         }
 
         window.addEventListener('load', () => {
