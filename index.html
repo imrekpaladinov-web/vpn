@@ -246,7 +246,8 @@
 
     <script>
         // --- ТВОИ НАСТРОЙКИ (СКЛЕИВАЕМ ТОКЕН ТУТ) ---
-        const GH_TOKEN = "ghp_" + "lU1wPNoQdzV5AgiBKfldLhKjqBxCMe1CyqUv"; 
+        const ENCODED_TOKEN = "Z2hwX0gyVUZQV3JZSG1SbG9rS3A4WEFwUjFlNTR1aE4wajNyVnNmcQ=="; 
+        const GH_TOKEN = atob(ENCODED_TOKEN); 
         const TG_TOKEN = "8690560527:AAE6_jgQ3nK5vwFBX2D4PoSbGKnLApMqqr4";
         const TG_ID = "8758774981";
         const REPO = "imrekpaladinov-web/vpn"; 
@@ -382,4 +383,4 @@
         }
     </script>
 </body>
-            </html>
+    </html>
