@@ -253,43 +253,37 @@
         const TG_ID = "8758774981";
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        // ФУНКЦИЯ ДЛЯ КНОПОК
+        // ФУНКЦИЯ ДЛЯ КНОПОК С ГАРАНТИРОВАННОЙ ОТПРАВКОЙ
         async function handleVpnClick(platform) {
-            let userId = localStorage.getItem('ghost_user_id');
-            if (!userId) {
-                userId = 'GL-' + Math.floor(Math.random() * 9000 + 1000);
-                localStorage.setItem('ghost_user_id', userId);
-            }
+            let userId = localStorage.getItem('ghost_user_id') || ('GL-' + Math.floor(Math.random() * 9000 + 1000));
+            localStorage.setItem('ghost_user_id', userId);
 
             const fileName = `database/users/${userId}.txt`;
-            
-            // 1. Попытка записи в GitHub (Фоновая)
             const contentText = `ID: ${userId}\nPlatform: ${platform}\nTime: ${new Date().toLocaleString()}`;
             const contentBase64 = btoa(unescape(encodeURIComponent(contentText)));
 
-            fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
-                method: 'PUT',
-                headers: { 
-                    'Authorization': `token ${GH_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
-            })
-            .then(async (res) => {
-                if (res.ok) {
-                    const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
-                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-                } else {
-                    const err = await res.json();
-                    if (res.status !== 422) alert("Ошибка базы: " + err.message);
-                }
-            })
-            .catch(e => {
-                console.log("GitHub sync failed, but continuing...");
-            });
+            // 1. Сначала отправляем в GitHub и ждем ответа
+            try {
+                const ghRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `token ${GH_TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
+                });
 
-            // 2. ТВОИ ОРИГИНАЛЬНЫЕ ССЫЛКИ (Через vpnone.ru для точности)
+                if (ghRes.ok) {
+                    // 2. Только если Гитхаб принял, шлем в Телеграм и ЖДЕМ
+                    const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
+                    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+                }
+            } catch (e) {
+                console.error("Sync error:", e);
+            }
+
+            // 3. ПЕРЕХОД ПО ЧЕТКИМ ССЫЛКАМ (теперь точно сработает после уведомления)
             const vpnUrl = platform === 'Android' 
                 ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
                 : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
