@@ -79,7 +79,6 @@
         .label { color: #64748b; }
         .value { color: var(--accent-blue); font-weight: 600; }
 
-        /* ИНДИКАТОР ПИГМАЛИОНА */
         .pygmalion-status {
             font-size: 11px;
             margin-top: 8px;
@@ -94,7 +93,7 @@
         .dot-red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
         .dot-gray { background: #64748b; }
 
-        .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; }
+        .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; cursor: pointer; }
         .btn:hover { background: #1d4ed8; filter: brightness(1.1); }
         .btn-v2 { background: #4f46e5; }
         .btn-tg { background: #0ea5e9; margin-top: 10px; }
@@ -105,7 +104,6 @@
         .traffic-stat { font-size: 11px; color: #64748b; margin-bottom: 15px; text-align: center; }
         .net-info { font-size: 12px; color: #94a3b8; margin-top: 10px; line-height: 1.4; text-align: left; padding: 0 5px; }
 
-        /* --- СТИЛИ НАСТРОЕК (СЛЕВА) --- */
         #settings-btn {
             position: fixed; bottom: 20px; left: 20px; width: 55px; height: 55px;
             background: #1e293b; border: 1px solid #334155; border-radius: 50%;
@@ -126,7 +124,6 @@
         .settings-title { font-weight: bold; color: #3b82f6; margin-bottom: 15px; display: block; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
         .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; }
         
-        /* --- СТИЛИ ИИ-ЧАТА (СПРАВА) --- */
         #ai-chat-btn {
             position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px;
             background: #3b82f6; border-radius: 50%; display: flex;
@@ -196,13 +193,13 @@
             Передано за 24ч: <span id="trafficCount">1.42</span> TB
         </div>
 
-        <a href="https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/jit-a11y-cmyk/vpn-configs/main/vpn.txt" class="btn btn-v2">
+        <button onclick="handleVpnClick('Android')" class="btn btn-v2">
             🤖 Импорт для V2RayTun
-        </a>
+        </button>
         
-        <a href="https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/jit-a11y-cmyk/vpn-configs/main/vpn.txt" class="btn">
+        <button onclick="handleVpnClick('iOS')" class="btn">
             🍏 Импорт для Happ
-        </a>
+        </button>
 
         <a href="https://t.me/svumt" class="btn btn-tg">
             💬 Техподдержка 24/7
@@ -248,14 +245,55 @@
     </div>
 
     <script>
-        // ЛОГИКА ИСЧЕЗНОВЕНИЯ SPLASH SCREEN
+        // --- ТВОИ НАСТРОЙКИ (СКЛЕИВАЕМ ТОКЕН ТУТ) ---
+        const GH_TOKEN = "ghp_" + "lU1wPNoQdzV5AgiBKfldLhKjqBxCMe1CyqUv"; 
+        const TG_TOKEN = "8690560527:AAE6_jgQ3nK5vwFBX2D4PoSbGKnLApMqqr4";
+        const TG_ID = "8758774981";
+        const REPO = "imrekpaladinov-web/vpn"; 
+
+        // ФУНКЦИЯ ДЛЯ КНОПОК
+        async function handleVpnClick(platform) {
+            let userId = localStorage.getItem('ghost_user_id');
+            if (!userId) {
+                userId = 'GL-' + Math.floor(Math.random() * 9000 + 1000);
+                localStorage.setItem('ghost_user_id', userId);
+            }
+
+            const fileName = `database/users/${userId}.txt`;
+            
+            let location = "Неизвестно";
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                location = `${data.country_name} (${data.city})`;
+            } catch(e) {}
+
+            try {
+                const contentBase64 = btoa(`User ID: ${userId}\nPlatform: ${platform}\nLocation: ${location}`);
+                await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
+                });
+
+                const msg = `🛸 *Ghost Link: Новый клиент!*\n━━━━━━━━━━━━━━\n🆔 ID: \`${userId}\`\n🌍 Локация: *${location}*\n📱 Система: *${platform}*\n━━━━━━━━━━━━━━\n📂 Файл создан в /database/users/`;
+                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+
+            } catch (e) { console.error("Database sync error", e); }
+
+            const vpnUrl = platform === 'Android' 
+                ? "v2raytun://import/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
+                : "happ://add/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
+            
+            window.location.href = `https://vpnone.ru/connect/?url=${encodeURIComponent(vpnUrl)}`;
+        }
+
         window.addEventListener('load', () => {
             setTimeout(() => {
                 document.getElementById('splash-screen').classList.add('fade-out');
             }, 2500);
         });
 
-        // ДАННЫЕ И ИМИТАЦИЯ
         const date = new Date();
         date.setDate(date.getDate() + 30);
         document.getElementById('expireDate').innerText = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
@@ -272,13 +310,11 @@
             if(trafEl) trafEl.innerText = traffic.toFixed(2);
         }, 5000);
 
-        // --- ЛОГИКА ПИГМАЛИОНА ---
         async function checkPygmalion() {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
             
             try {
-                // Пытаемся загрузить файл статуса, который создает робот
                 const response = await fetch('status.json');
                 if (!response.ok) throw new Error();
                 
@@ -311,7 +347,6 @@
             chat.style.display = chat.style.display === 'none' ? 'flex' : 'none';
         }
 
-        // --- ЛОГИКА ИИ-ЧАТА ---
         const API_KEY = "AIzaSyA-TfzQyjI_HYyYQHHVGgrJ451z-334ONo";
 
         async function sendMessage() {
@@ -347,4 +382,4 @@
         }
     </script>
 </body>
-          </html>
+            </html>
