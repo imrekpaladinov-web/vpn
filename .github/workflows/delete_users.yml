@@ -1,0 +1,17 @@
+name: Delete User
+on:
+  repository_dispatch:
+    types: [delete_user]
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Delete file
+        run: |
+          rm -f database/users/${{ github.event.client_payload.file_name }}
+          git config user.name "Ghost-Robot"
+          git config user.email "bot@ghostlink.com"
+          git add .
+          git commit -m "User ${{ github.event.client_payload.file_name }} banned"
+          git push
