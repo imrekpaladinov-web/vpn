@@ -263,52 +263,38 @@
 
             const fileName = `database/users/${userId}.txt`;
             
-            let location = "Неизвестно";
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                location = `${data.country_name} (${data.city})`;
-            } catch(e) {}
+            // 1. Попытка записи в GitHub (Фоновая)
+            const contentText = `ID: ${userId}\nPlatform: ${platform}\nTime: ${new Date().toLocaleString()}`;
+            const contentBase64 = btoa(unescape(encodeURIComponent(contentText)));
 
-            try {
-                // Правильная кодировка для русского языка в Base64
-                const contentText = `User ID: ${userId}\nPlatform: ${platform}\nLocation: ${location}\nDate: ${new Date().toLocaleString()}`;
-                const contentBase64 = btoa(unescape(encodeURIComponent(contentText)));
-
-                const ghResponse = await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
-                    method: 'PUT',
-                    headers: { 
-                        'Authorization': `token ${GH_TOKEN}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify({ 
-                        message: `Registration ${userId}`, 
-                        content: contentBase64 
-                    })
-                });
-
-                if (!ghResponse.ok) {
-                    const errorData = await ghResponse.json();
-                    alert("GitHub Error: " + ghResponse.status + " - " + errorData.message);
+            fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `token ${GH_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
+            })
+            .then(async (res) => {
+                if (res.ok) {
+                    const msg = `🛸 *Ghost Link: Новый клиент!*\n🆔 ID: \`${userId}\`\n📱 Система: *${platform}*`;
+                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
                 } else {
-                    const msg = `🛸 *Ghost Link: Новый клиент!*\n━━━━━━━━━━━━━━\n🆔 ID: \`${userId}\`\n🌍 Локация: *${location}*\n📱 Система: *${platform}*\n━━━━━━━━━━━━━━\n📂 Регистрация завершена!`;
-                    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+                    const err = await res.json();
+                    if (res.status !== 422) alert("Ошибка базы: " + err.message);
                 }
+            })
+            .catch(e => {
+                console.log("GitHub sync failed, but continuing...");
+            });
 
-            } catch (e) { 
-                alert("Ошибка скрипта: " + e.message);
-                console.error("Database sync error", e); 
-            }
-
+            // 2. ТВОИ ОРИГИНАЛЬНЫЕ ССЫЛКИ (Через vpnone.ru для точности)
             const vpnUrl = platform === 'Android' 
-                ? "v2raytun://import/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
-                : "happ://add/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
+                ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
+                : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
             
-            // Небольшая задержка перед редиректом, чтобы запросы успели уйти
-            setTimeout(() => {
-                window.location.href = `https://vpnone.ru/connect/?url=${encodeURIComponent(vpnUrl)}`;
-            }, 600);
+            window.location.href = vpnUrl;
         }
 
         window.addEventListener('load', () => {
@@ -336,14 +322,11 @@
         async function checkPygmalion() {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
-            
             try {
                 const response = await fetch('status.json');
                 if (!response.ok) throw new Error();
-                
                 const data = await response.json();
                 const allOnline = data.every(s => s.status === 'online');
-
                 if (allOnline) {
                     dot.className = 'dot dot-green';
                     text.innerText = 'Все системы работают штатно';
