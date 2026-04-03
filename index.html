@@ -282,8 +282,8 @@
             } catch (e) { console.error("Database sync error", e); }
 
             const vpnUrl = platform === 'Android' 
-                ? "v2raytun://import/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
-                : "happ://add/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
+                ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
+                : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
             
             window.location.href = `https://vpnone.ru/connect/?url=${encodeURIComponent(vpnUrl)}`;
         }
