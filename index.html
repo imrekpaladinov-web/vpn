@@ -245,7 +245,7 @@
     </div>
 
     <script>
-        // --- ТВОИ НАСТРОЙКИ (СКЛЕИВАЕМ ТОКЕН ТУТ) ---
+        // --- ТВОИ НАСТРОЙКИ ---
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const GH_TOKEN = atob(p1 + p2);
@@ -271,23 +271,44 @@
             } catch(e) {}
 
             try {
-                const contentBase64 = btoa(`User ID: ${userId}\nPlatform: ${platform}\nLocation: ${location}`);
-                await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
+                // Правильная кодировка для русского языка в Base64
+                const contentText = `User ID: ${userId}\nPlatform: ${platform}\nLocation: ${location}\nDate: ${new Date().toLocaleString()}`;
+                const contentBase64 = btoa(unescape(encodeURIComponent(contentText)));
+
+                const ghResponse = await fetch(`https://api.github.org/repos/${REPO}/contents/${fileName}`, {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `Reg ${userId}`, content: contentBase64 })
+                    headers: { 
+                        'Authorization': `token ${GH_TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        message: `Registration ${userId}`, 
+                        content: contentBase64 
+                    })
                 });
 
-                const msg = `🛸 *Ghost Link: Новый клиент!*\n━━━━━━━━━━━━━━\n🆔 ID: \`${userId}\`\n🌍 Локация: *${location}*\n📱 Система: *${platform}*\n━━━━━━━━━━━━━━\n📂 Файл создан в /database/users/`;
-                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+                if (!ghResponse.ok) {
+                    const errorData = await ghResponse.json();
+                    alert("GitHub Error: " + ghResponse.status + " - " + errorData.message);
+                } else {
+                    const msg = `🛸 *Ghost Link: Новый клиент!*\n━━━━━━━━━━━━━━\n🆔 ID: \`${userId}\`\n🌍 Локация: *${location}*\n📱 Система: *${platform}*\n━━━━━━━━━━━━━━\n📂 Регистрация завершена!`;
+                    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${TG_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+                }
 
-            } catch (e) { console.error("Database sync error", e); }
+            } catch (e) { 
+                alert("Ошибка скрипта: " + e.message);
+                console.error("Database sync error", e); 
+            }
 
             const vpnUrl = platform === 'Android' 
-                ? "https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
-                : "https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
+                ? "v2raytun://import/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt"
+                : "happ://add/https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt";
             
-            window.location.href = `https://vpnone.ru/connect/?url=${encodeURIComponent(vpnUrl)}`;
+            // Небольшая задержка перед редиректом, чтобы запросы успели уйти
+            setTimeout(() => {
+                window.location.href = `https://vpnone.ru/connect/?url=${encodeURIComponent(vpnUrl)}`;
+            }, 600);
         }
 
         window.addEventListener('load', () => {
@@ -384,4 +405,4 @@
         }
     </script>
 </body>
-    </html>
+</html>
