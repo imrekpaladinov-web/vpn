@@ -122,7 +122,6 @@
         const REPO = "imrekpaladinov-web/vpn"; 
         const SUB_URL = "https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/sub.txt";
 
-        // РЕГИСТРАЦИЯ ТОЛЬКО ЧЕРЕЗ GITHUB
         async function handleVpnClick(platform) {
             let userId = localStorage.getItem('ghost_user_id');
             if(!userId) {
@@ -130,6 +129,7 @@
                 localStorage.setItem('ghost_user_id', userId);
             }
 
+            const path = `database/users/${userId}.json`;
             const userData = {
                 id: userId,
                 active: true,
@@ -140,23 +140,47 @@
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
             try {
-                // Запись в базу GitHub (JSON формат)
-                await fetch(`https://api.github.org/repos/${REPO}/contents/database/users/${userId}.json`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `Reg ${userId}`, content: content })
+                // Пытаемся получить файл, чтобы взять его SHA (если он уже есть)
+                const checkRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                    headers: { 'Authorization': `token ${GH_TOKEN}` }
                 });
-            } catch (e) { console.log("GitHub sync error"); }
 
-            // Формируем ссылку импорта через твой sub.txt
+                let sha = "";
+                if (checkRes.ok) {
+                    const existingFile = await checkRes.json();
+                    sha = existingFile.sha;
+                }
+
+                // Отправляем данные на GitHub
+                const putRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `token ${GH_TOKEN}`, 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        message: `User ${userId} update`, 
+                        content: content,
+                        sha: sha // Передаем SHA, если файл обновляется
+                    })
+                });
+
+                if(putRes.ok) {
+                    console.log("GitHub Sync: Success");
+                }
+            } catch (e) { 
+                console.log("GitHub Sync: Error", e); 
+            }
+
+            // Переход по ссылке
             const importUrl = platform === 'Android' 
-                ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${SUB_URL}`
-                : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${SUB_URL}`;
+                ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(SUB_URL)}`
+                : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(SUB_URL)}`;
             
             window.location.href = importUrl;
         }
 
-        // МОНИТОРИНГ
+        // Остальные функции без изменений
         async function checkPygmalion() {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
@@ -175,7 +199,7 @@
         }
 
         window.onload = () => {
-            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 2000);
+            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1500);
             const d = new Date(); d.setDate(d.getDate() + 30);
             document.getElementById('expireDate').innerText = d.toLocaleDateString();
             document.getElementById('displayId').innerText = localStorage.getItem('ghost_user_id') || 'New User';
