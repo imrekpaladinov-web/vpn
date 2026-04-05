@@ -140,8 +140,8 @@
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
             try {
-                // 1. Пытаемся получить файл, чтобы узнать его SHA (если он уже есть)
-                const checkRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                // ИСПРАВЛЕНО: api.github.com вместо .org
+                const checkRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                     headers: { 'Authorization': `token ${GH_TOKEN}` }
                 });
 
@@ -151,8 +151,7 @@
                     sha = existingFile.sha;
                 }
 
-                // 2. Отправляем файл на GitHub
-                const putRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                const putRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                     method: 'PUT',
                     headers: { 
                         'Authorization': `token ${GH_TOKEN}`, 
@@ -166,7 +165,7 @@
                 });
 
                 if(putRes.ok) {
-                    alert("✅ Успех! Пользователь зарегистрирован в базе.");
+                    alert("✅ Успех! Пользователь зарегистрирован.");
                 } else {
                     const errInfo = await putRes.json();
                     alert("❌ Ошибка базы: " + errInfo.message);
@@ -176,12 +175,13 @@
                 alert("❌ Ошибка сети: " + e.message);
             }
 
-            // РЕДИРЕКТ НА ПРИЛОЖЕНИЕ
-            const importUrl = platform === 'Android' 
-                ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(SUB_URL)}`
-                : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(SUB_URL)}`;
-            
-            window.location.href = importUrl;
+            // РЕДИРЕКТ С НЕБОЛЬШОЙ ЗАДЕРЖКОЙ
+            setTimeout(() => {
+                const importUrl = platform === 'Android' 
+                    ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(SUB_URL)}`
+                    : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(SUB_URL)}`;
+                window.location.href = importUrl;
+            }, 800);
         }
 
         async function checkPygmalion() {
@@ -225,7 +225,7 @@
             try {
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA-TfzQyjI_HYyYQHHVGgrJ451z-334ONo`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `Ты эксперт Ghost Link VPN. Вежлив. Кратко ответь: ${val}` }] }] })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Ты эксперт Ghost Link VPN. Кратко ответь: ${val}` }] }] })
                 });
                 const data = await res.json();
                 container.innerHTML += `<div class="msg ai-msg">${data.candidates[0].content.parts[0].text}</div>`;
