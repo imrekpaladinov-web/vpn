@@ -1,0 +1,29 @@
+name: Update Subscription
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную кнопкой
+  schedule:
+    - cron: '0 * * * *' # Запуск автоматически каждый час
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Run script
+        run: python ping_check.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GhostBot"
+          git config --global user.email "bot@ghostlink.com"
+          git add sub.txt
+          git commit -m "Auto-update subscription" || exit 0
+          git push
