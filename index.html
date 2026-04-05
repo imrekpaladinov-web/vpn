@@ -140,7 +140,7 @@
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
             try {
-                // Пытаемся получить файл, чтобы взять его SHA (если он уже есть)
+                // 1. Пытаемся получить файл, чтобы узнать его SHA (если он уже есть)
                 const checkRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
                     headers: { 'Authorization': `token ${GH_TOKEN}` }
                 });
@@ -151,7 +151,7 @@
                     sha = existingFile.sha;
                 }
 
-                // Отправляем данные на GitHub
+                // 2. Отправляем файл на GitHub
                 const putRes = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
                     method: 'PUT',
                     headers: { 
@@ -159,20 +159,24 @@
                         'Content-Type': 'application/json' 
                     },
                     body: JSON.stringify({ 
-                        message: `User ${userId} update`, 
+                        message: `Update ${userId}`, 
                         content: content,
-                        sha: sha // Передаем SHA, если файл обновляется
+                        sha: sha 
                     })
                 });
 
                 if(putRes.ok) {
-                    console.log("GitHub Sync: Success");
+                    alert("✅ Успех! Пользователь зарегистрирован в базе.");
+                } else {
+                    const errInfo = await putRes.json();
+                    alert("❌ Ошибка базы: " + errInfo.message);
                 }
+
             } catch (e) { 
-                console.log("GitHub Sync: Error", e); 
+                alert("❌ Ошибка сети: " + e.message);
             }
 
-            // Переход по ссылке
+            // РЕДИРЕКТ НА ПРИЛОЖЕНИЕ
             const importUrl = platform === 'Android' 
                 ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(SUB_URL)}`
                 : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(SUB_URL)}`;
@@ -180,7 +184,6 @@
             window.location.href = importUrl;
         }
 
-        // Остальные функции без изменений
         async function checkPygmalion() {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
