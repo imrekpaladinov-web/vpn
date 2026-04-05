@@ -35,21 +35,26 @@
     </div>
 
     <script>
-        // --- ТОКЕН И РЕПОЗИТОРИЙ ---
+        // --- КОНФИГУРАЦИЯ ---
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const GH_TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
 
         async function toggleAccess(status) {
-            let rawInput = document.getElementById('targetId').value.trim();
+            let inputId = document.getElementById('targetId').value.trim();
             const loader = document.getElementById('loader');
             
-            if(!rawInput) return alert("⚠️ Введи ID пользователя!");
+            if(!inputId) return alert("⚠️ Введите ID пользователя!");
 
-            // Умная обработка ID: превращаем 4150 в GL-4150
-            let id = rawInput;
-            if (/^\d+$/.test(id)) { id = 'GL-' + id; }
+            // 1. УМНАЯ КОРРЕКЦИЯ ID
+            let id = inputId;
+            if (/^\d+$/.test(id)) { 
+                id = 'GL-' + id; // Если ввели только цифры
+            }
+            if (id.startsWith('US-')) { 
+                id = id.replace('US-', 'GL-'); // Если ввели US-, меняем на GL-
+            }
             id = id.replace('.json', '');
 
             const path = `database/users/${id}.json`;
@@ -58,7 +63,7 @@
             loader.style.display = "block";
 
             try {
-                // 1. ЗАПРОС ФАЙЛА
+                // 2. ЗАПРОС ФАЙЛА (с подавлением кэша)
                 const res = await fetch(apiUrl, {
                     method: 'GET',
                     headers: { 
@@ -69,18 +74,14 @@
                 });
 
                 if (!res.ok) {
-                    if (res.status === 404) {
-                        throw new Error(`Файл "${id}.json" не найден в базе данных!`);
-                    } else if (res.status === 401) {
-                        throw new Error("Токен заблокирован GitHub! Нужно обновить GH_TOKEN.");
-                    } else {
-                        throw new Error(`GitHub Error: ${res.status}`);
-                    }
+                    if (res.status === 404) throw new Error(`Пользователь ${id} не найден!`);
+                    if (res.status === 401) throw new Error("Токен недействителен!");
+                    throw new Error(`Ошибка GitHub: ${res.status}`);
                 }
 
                 const file = await res.json();
 
-                // 2. ДЕКОДИРОВАНИЕ
+                // 3. ДЕКОДИРОВАНИЕ (защита от ломанных данных)
                 let userData;
                 try {
                     userData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
@@ -88,14 +89,14 @@
                     userData = JSON.parse(atob(file.content));
                 }
                 
-                // 3. ИЗМЕНЕНИЕ СТАТУСА
+                // 4. ОБНОВЛЕНИЕ ДАННЫХ
                 userData.active = status;
-                userData.last_mod = new Date().toLocaleString();
+                userData.id = id; // Гарантируем, что внутри файла ID тоже GL-
+                userData.admin_mod = new Date().toLocaleString();
 
-                // 4. КОДИРОВАНИЕ ОБРАТНО
                 const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
-                // 5. СОХРАНЕНИЕ
+                // 5. ОТПРАВКА НА СЕРВЕР
                 const putRes = await fetch(apiUrl, {
                     method: 'PUT',
                     headers: { 
@@ -104,7 +105,7 @@
                         'Accept': 'application/vnd.github+json'
                     },
                     body: JSON.stringify({
-                        message: `Admin Panel: ${status ? 'Activated' : 'Banned'} user ${id}`,
+                        message: `Admin Panel: ${status ? 'Activated' : 'Banned'} ${id}`,
                         content: newContent,
                         sha: file.sha
                     })
@@ -114,13 +115,13 @@
                     alert(`🚀 ВЫПОЛНЕНО!\n\nID: ${id}\nСТАТУС: ${status ? 'АКТИВЕН ✅' : 'ЗАБАНЕН ❌'}`);
                 } else {
                     const errInfo = await putRes.json();
-                    throw new Error("Ошибка записи: " + errInfo.message);
+                    throw new Error(errInfo.message || "Ошибка записи");
                 }
 
             } catch (e) {
-                console.error("Ошибка детально:", e);
-                if (e.message === 'Failed to fetch') {
-                    alert("❌ ОШИБКА FETCH!\n\nСкорее всего, GitHub блокирует запрос. Попробуй открыть админку в режиме ИНКОГНИТО.");
+                console.error("Ошибка:", e);
+                if (e.message.includes('fetch')) {
+                    alert("❌ ОШИБКА FETCH!\n\n1. Попробуй режим Инкогнито.\n2. Убедись, что GitHub не удалил токен за публикацию.");
                 } else {
                     alert("❌ ОШИБКА: " + e.message);
                 }
