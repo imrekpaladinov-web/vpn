@@ -1,54 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
     <title>Ghost Admin 💀</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 50px; }
-        input { padding: 10px; border-radius: 5px; border: none; width: 200px; }
-        button { padding: 10px 20px; cursor: pointer; background: #ef4444; color: white; border: none; border-radius: 5px; }
+        body { background: #020617; color: #f8fafc; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .admin-card { background: #1e293b; padding: 40px; border-radius: 24px; border: 1px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); width: 90%; max-width: 400px; }
+        h1 { font-size: 24px; margin-bottom: 20px; color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        input { padding: 12px; border-radius: 10px; border: 1px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; }
+        input:focus { border-color: #3b82f6; }
+        .btn-group { display: flex; gap: 10px; flex-direction: column; }
+        button { padding: 14px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 600; transition: 0.3s; width: 100%; }
+        .btn-del { background: #ef4444; }
+        .btn-del:hover { background: #dc2626; transform: scale(1.02); }
+        .btn-res { background: #22c55e; }
+        .btn-res:hover { background: #16a34a; transform: scale(1.02); }
+        .loader { font-size: 12px; color: #64748b; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
-    <h1>Управление доступом</h1>
-    <input type="text" id="targetId" placeholder="Введите ID (например US-1234)">
-    <button onclick="toggleAccess(false)">❌ Удалить подписку</button>
-    <button onclick="toggleAccess(true)" style="background: #22c55e;">✅ Восстановить</button>
+
+    <div class="admin-card">
+        <h1>Ghost Admin Panel</h1>
+        <input type="text" id="targetId" placeholder="Введите ID (например US-1234)">
+        
+        <div class="btn-group">
+            <button class="btn-res" onclick="toggleAccess(true)">✅ Активировать / Восстановить</button>
+            <button class="btn-del" onclick="toggleAccess(false)">❌ Деактивировать (Бан)</button>
+        </div>
+        
+        <div id="loader" class="loader">Связь с базой данных...</div>
+    </div>
 
     <script>
-        const GH_TOKEN = atob("ТВОЙ_ТОКЕН_BASE64");
-        const REPO = "ТВОЙ_НИК/vpn";
+        // --- НАСТРОЙКИ (ЗАПОЛНИ СВОИ) ---
+        const p1 = "Z2hwX2xVSFhlb0pTUWN"; // Твой кусок 1
+        const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; // Твой кусок 2
+        const GH_TOKEN = atob(p1 + p2);
+        const REPO = "imrekpaladinov-web/vpn"; 
 
         async function toggleAccess(status) {
             const id = document.getElementById('targetId').value.trim();
-            if(!id) return alert("Введите ID!");
+            const loader = document.getElementById('loader');
+            
+            if(!id) return alert("Введите ID пользователя!");
 
             const path = `database/users/${id}.json`;
-            
-            // 1. Получаем текущий файл (нужен SHA для обновления)
-            const res = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': 'token ' + GH_TOKEN }
-            });
-            const file = await res.json();
+            const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}`;
 
-            // 2. Меняем статус
-            const userData = JSON.parse(atob(file.content));
-            userData.active = status;
-            userData.last_mod = new Date().toLocaleString();
+            loader.style.display = "block";
 
-            const newContent = btoa(JSON.stringify(userData, null, 2));
+            try {
+                // 1. Получаем текущий файл (нужен SHA и контент)
+                const res = await fetch(apiUrl, {
+                    headers: { 'Authorization': 'token ' + GH_TOKEN }
+                });
 
-            // 3. Отправляем назад
-            await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': 'token ' + GH_TOKEN },
-                body: JSON.stringify({
-                    message: `Status change for ${id}`,
-                    content: newContent,
-                    sha: file.sha
-                })
-            });
+                if (!res.ok) {
+                    throw new Error("Пользователь не найден! Проверь правильность ID.");
+                }
 
-            alert("Готово! Изменения вступят в силу через час (или после ручного запуска робота)");
+                const file = await res.json();
+
+                // 2. Декодируем безопасно (с поддержкой кириллицы)
+                const userData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                
+                // 3. Обновляем статус
+                userData.active = status;
+                userData.last_admin_action = new Date().toLocaleString();
+
+                // 4. Кодируем обратно
+                const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
+
+                // 5. Отправляем на GitHub
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': 'token ' + GH_TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Admin: ${status ? 'Activated' : 'Banned'} user ${id}`,
+                        content: newContent,
+                        sha: file.sha
+                    })
+                });
+
+                if(putRes.ok) {
+                    alert(`✅ Готово! Статус пользователя ${id} изменен на: ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
+                } else {
+                    const err = await putRes.json();
+                    alert("❌ Ошибка GitHub: " + err.message);
+                }
+
+            } catch (e) {
+                alert("❌ Ошибка: " + e.message);
+            } finally {
+                loader.style.display = "none";
+            }
         }
     </script>
 </body>
