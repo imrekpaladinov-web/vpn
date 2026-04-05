@@ -7,43 +7,52 @@
         body { background: #020617; color: #f8fafc; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
         .admin-card { background: #1e293b; padding: 40px; border-radius: 24px; border: 1px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); width: 90%; max-width: 400px; }
         h1 { font-size: 24px; margin-bottom: 20px; color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
-        input { padding: 12px; border-radius: 10px; border: 1px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; }
-        input:focus { border-color: #3b82f6; }
+        input { padding: 12px; border-radius: 10px; border: 1px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 16px; }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
         .btn-group { display: flex; gap: 10px; flex-direction: column; }
-        button { padding: 14px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 600; transition: 0.3s; width: 100%; }
+        button { padding: 14px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 600; transition: 0.3s; width: 100%; font-size: 15px; }
         .btn-del { background: #ef4444; }
         .btn-del:hover { background: #dc2626; transform: scale(1.02); }
         .btn-res { background: #22c55e; }
         .btn-res:hover { background: #16a34a; transform: scale(1.02); }
-        .loader { font-size: 12px; color: #64748b; margin-top: 15px; display: none; }
+        .loader { font-size: 14px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
     <div class="admin-card">
         <h1>Ghost Admin Panel</h1>
-        <input type="text" id="targetId" placeholder="Введите ID (например US-1234)">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">Вводи ID (напр. GL-1234 или просто 1234)</p>
+        <input type="text" id="targetId" placeholder="Введите ID пользователя">
         
         <div class="btn-group">
             <button class="btn-res" onclick="toggleAccess(true)">✅ Активировать / Восстановить</button>
             <button class="btn-del" onclick="toggleAccess(false)">❌ Деактивировать (Бан)</button>
         </div>
         
-        <div id="loader" class="loader">Связь с базой данных...</div>
+        <div id="loader" class="loader">⚙️ ОБРАБОТКА ДАННЫХ...</div>
     </div>
 
     <script>
-        // --- НАСТРОЙКИ (ЗАПОЛНИ СВОИ) ---
-        const p1 = "Z2hwX2xVSFhlb0pTUWN"; // Твой кусок 1
-        const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; // Твой кусок 2
+        // --- ТОКЕН И РЕПОЗИТОРИЙ ---
+        const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
+        const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const GH_TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
 
         async function toggleAccess(status) {
-            const id = document.getElementById('targetId').value.trim();
+            let id = document.getElementById('targetId').value.trim();
             const loader = document.getElementById('loader');
             
             if(!id) return alert("Введите ID пользователя!");
+
+            // ХАК: Если ввел только цифры, добавляем GL- автоматом
+            if (!id.startsWith('GL-') && !id.startsWith('US-')) {
+                id = 'GL-' + id;
+            }
+            // Убираем .json если вдруг вписал вручную
+            id = id.replace('.json', '');
 
             const path = `database/users/${id}.json`;
             const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}`;
@@ -51,23 +60,35 @@
             loader.style.display = "block";
 
             try {
-                // 1. Получаем текущий файл (нужен SHA и контент)
+                // 1. Получаем файл с GitHub (принудительно без кэша)
                 const res = await fetch(apiUrl, {
-                    headers: { 'Authorization': 'token ' + GH_TOKEN }
+                    headers: { 
+                        'Authorization': 'token ' + GH_TOKEN,
+                        'Cache-Control': 'no-cache'
+                    }
                 });
 
                 if (!res.ok) {
-                    throw new Error("Пользователь не найден! Проверь правильность ID.");
+                    if (res.status === 404) {
+                        throw new Error(`Пользователь "${id}" не найден в папке database/users/`);
+                    } else {
+                        throw new Error(`Ошибка GitHub: ${res.status}`);
+                    }
                 }
 
                 const file = await res.json();
 
-                // 2. Декодируем безопасно (с поддержкой кириллицы)
-                const userData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                // 2. Декодируем (с защитой от кривого Base64 и спецсимволов)
+                let userData;
+                try {
+                    userData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                } catch(e) {
+                    userData = JSON.parse(atob(file.content));
+                }
                 
                 // 3. Обновляем статус
                 userData.active = status;
-                userData.last_admin_action = new Date().toLocaleString();
+                userData.admin_modified = new Date().toLocaleString();
 
                 // 4. Кодируем обратно
                 const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
@@ -80,21 +101,21 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Admin: ${status ? 'Activated' : 'Banned'} user ${id}`,
+                        message: `Admin: ${status ? 'Active' : 'Ban'} user ${id}`,
                         content: newContent,
                         sha: file.sha
                     })
                 });
 
-                if(putRes.ok) {
-                    alert(`✅ Готово! Статус пользователя ${id} изменен на: ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
+                if (putRes.ok) {
+                    alert(`✅ УСПЕХ!\nЮзер: ${id}\nДоступ: ${status ? 'РАЗРЕШЕН' : 'ЗАКРЫТ'}`);
                 } else {
                     const err = await putRes.json();
-                    alert("❌ Ошибка GitHub: " + err.message);
+                    alert("❌ Ошибка записи: " + err.message);
                 }
 
             } catch (e) {
-                alert("❌ Ошибка: " + e.message);
+                alert("❌ ОШИБКА: " + e.message);
             } finally {
                 loader.style.display = "none";
             }
