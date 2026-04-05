@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ghost Admin 💀</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 50px; }
+        input { padding: 10px; border-radius: 5px; border: none; width: 200px; }
+        button { padding: 10px 20px; cursor: pointer; background: #ef4444; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Управление доступом</h1>
+    <input type="text" id="targetId" placeholder="Введите ID (например US-1234)">
+    <button onclick="toggleAccess(false)">❌ Удалить подписку</button>
+    <button onclick="toggleAccess(true)" style="background: #22c55e;">✅ Восстановить</button>
+
+    <script>
+        const GH_TOKEN = atob("ТВОЙ_ТОКЕН_BASE64");
+        const REPO = "ТВОЙ_НИК/vpn";
+
+        async function toggleAccess(status) {
+            const id = document.getElementById('targetId').value.trim();
+            if(!id) return alert("Введите ID!");
+
+            const path = `database/users/${id}.json`;
+            
+            // 1. Получаем текущий файл (нужен SHA для обновления)
+            const res = await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': 'token ' + GH_TOKEN }
+            });
+            const file = await res.json();
+
+            // 2. Меняем статус
+            const userData = JSON.parse(atob(file.content));
+            userData.active = status;
+            userData.last_mod = new Date().toLocaleString();
+
+            const newContent = btoa(JSON.stringify(userData, null, 2));
+
+            // 3. Отправляем назад
+            await fetch(`https://api.github.org/repos/${REPO}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'token ' + GH_TOKEN },
+                body: JSON.stringify({
+                    message: `Status change for ${id}`,
+                    content: newContent,
+                    sha: file.sha
+                })
+            });
+
+            alert("Готово! Изменения вступят в силу через час (или после ручного запуска робота)");
+        }
+    </script>
+</body>
+</html>
