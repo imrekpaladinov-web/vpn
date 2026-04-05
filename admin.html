@@ -2,129 +2,107 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Ghost Admin 💀</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Admin | MOBILE FORCE 💀</title>
     <style>
-        body { background: #020617; color: #f8fafc; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .admin-card { background: #1e293b; padding: 40px; border-radius: 24px; border: 1px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); width: 90%; max-width: 400px; }
-        h1 { font-size: 24px; margin-bottom: 20px; color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
-        input { padding: 12px; border-radius: 10px; border: 1px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 16px; font-weight: bold; }
-        input:focus { border-color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
-        .btn-group { display: flex; gap: 12px; flex-direction: column; }
-        button { padding: 14px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 700; transition: 0.3s; width: 100%; font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-del { background: #ef4444; box-shadow: 0 4px 0 #b91c1c; }
-        .btn-del:active { transform: translateY(4px); box-shadow: none; }
-        .btn-res { background: #22c55e; box-shadow: 0 4px 0 #15803d; }
-        .btn-res:active { transform: translateY(4px); box-shadow: none; }
-        .loader { font-size: 14px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        body { background: #020617; color: #f8fafc; font-family: -apple-system, system-ui, sans-serif; text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .admin-card { background: #1e293b; padding: 30px; border-radius: 24px; border: 1px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); width: 100%; max-width: 350px; box-sizing: border-box; }
+        h1 { font-size: 22px; margin-bottom: 20px; color: #3b82f6; text-transform: uppercase; letter-spacing: 2px; }
+        input { padding: 15px; border-radius: 12px; border: 2px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 18px; text-align: center; }
+        input:focus { border-color: #3b82f6; }
+        .btn-group { display: flex; gap: 15px; flex-direction: column; }
+        button { padding: 16px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 800; transition: 0.2s; width: 100%; font-size: 14px; text-transform: uppercase; }
+        .btn-res { background: #22c55e; box-shadow: 0 4px 0 #166534; }
+        .btn-del { background: #ef4444; box-shadow: 0 4px 0 #991b1b; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        .loader { font-size: 12px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; }
+        #log { font-size: 10px; color: #64748b; margin-top: 15px; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <div class="admin-card">
-        <h1>Ghost Admin Panel</h1>
-        <p style="font-size: 11px; color: #94a3b8; margin-bottom: 15px; font-weight: bold;">ID: GL-XXXX (цифры или полный ID)</p>
-        <input type="text" id="targetId" placeholder="Например: 4150">
+        <h1>Ghost Admin</h1>
+        <input type="number" id="targetId" placeholder="ID (например 9727)" inputmode="numeric">
         
         <div class="btn-group">
-            <button class="btn-res" onclick="toggleAccess(true)">✅ РАЗБАНИТЬ / ВКЛ</button>
-            <button class="btn-del" onclick="toggleAccess(false)">❌ ЗАБАНИТЬ / ВЫКЛ</button>
+            <button class="btn-res" onclick="execute(true)">✅ РАЗБАНИТЬ</button>
+            <button class="btn-del" onclick="execute(false)">❌ ЗАБАНИТЬ</button>
         </div>
         
-        <div id="loader" class="loader">📡 СВЯЗЬ С СЕРВЕРОМ GITHUB...</div>
+        <div id="loader" class="loader">📡 ПОДКЛЮЧЕНИЕ К КАНАЛУ...</div>
+        <div id="log">Статус: Ожидание</div>
     </div>
 
     <script>
-        // --- КОНФИГУРАЦИЯ ---
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
-        const GH_TOKEN = atob(p1 + p2);
+        const TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        async function toggleAccess(status) {
-            let inputId = document.getElementById('targetId').value.trim();
+        async function execute(status) {
+            const log = (txt) => document.getElementById('log').innerText = "Лог: " + txt;
             const loader = document.getElementById('loader');
+            let id = document.getElementById('targetId').value.trim();
             
-            if(!inputId) return alert("⚠️ Введите ID пользователя!");
-
-            // 1. УМНАЯ КОРРЕКЦИЯ ID
-            let id = inputId;
-            if (/^\d+$/.test(id)) { 
-                id = 'GL-' + id; // Если ввели только цифры
-            }
-            if (id.startsWith('US-')) { 
-                id = id.replace('US-', 'GL-'); // Если ввели US-, меняем на GL-
-            }
-            id = id.replace('.json', '');
+            if(!id) return alert("Введите ID!");
+            if(!id.startsWith('GL-')) id = 'GL-' + id;
 
             const path = `database/users/${id}.json`;
-            const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}`;
+            const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
 
             loader.style.display = "block";
+            log("Запрос SHA...");
 
             try {
-                // 2. ЗАПРОС ФАЙЛА (с подавлением кэша)
-                const res = await fetch(apiUrl, {
+                // ШАГ 1: ПОЛУЧАЕМ ФАЙЛ С ЖЕСТКИМ ОБХОДОМ КЭША
+                const res = await fetch(url + "?nocache=" + Date.now(), {
                     method: 'GET',
-                    headers: { 
-                        'Authorization': `Bearer ${GH_TOKEN}`,
-                        'Accept': 'application/vnd.github+json',
-                        'Cache-Control': 'no-store'
+                    headers: {
+                        'Authorization': `token ${TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Cache-Control': 'no-cache'
                     }
                 });
 
-                if (!res.ok) {
-                    if (res.status === 404) throw new Error(`Пользователь ${id} не найден!`);
-                    if (res.status === 401) throw new Error("Токен недействителен!");
-                    throw new Error(`Ошибка GitHub: ${res.status}`);
-                }
+                if (!res.ok) throw new Error("Юзер не найден или ошибка API");
 
                 const file = await res.json();
-
-                // 3. ДЕКОДИРОВАНИЕ (защита от ломанных данных)
-                let userData;
-                try {
-                    userData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-                } catch(e) {
-                    userData = JSON.parse(atob(file.content));
-                }
+                log("Декодирование...");
                 
-                // 4. ОБНОВЛЕНИЕ ДАННЫХ
-                userData.active = status;
-                userData.id = id; // Гарантируем, что внутри файла ID тоже GL-
-                userData.admin_mod = new Date().toLocaleString();
+                let data = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                data.active = status;
+                data.last_admin_action = new Date().toISOString();
 
-                const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
+                const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 
-                // 5. ОТПРАВКА НА СЕРВЕР
-                const putRes = await fetch(apiUrl, {
+                log("Отправка изменений...");
+
+                // ШАГ 2: ПУШИМ ОБРАТНО
+                const putRes = await fetch(url, {
                     method: 'PUT',
-                    headers: { 
-                        'Authorization': `Bearer ${GH_TOKEN}`,
+                    headers: {
+                        'Authorization': `token ${TOKEN}`,
                         'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github+json'
+                        'Accept': 'application/vnd.github.v3+json'
                     },
                     body: JSON.stringify({
-                        message: `Admin Panel: ${status ? 'Activated' : 'Banned'} ${id}`,
+                        message: `Admin fix: ${id}`,
                         content: newContent,
                         sha: file.sha
                     })
                 });
 
                 if (putRes.ok) {
-                    alert(`🚀 ВЫПОЛНЕНО!\n\nID: ${id}\nСТАТУС: ${status ? 'АКТИВЕН ✅' : 'ЗАБАНЕН ❌'}`);
+                    log("Успешно!");
+                    alert(`✅ ID ${id} теперь ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
                 } else {
-                    const errInfo = await putRes.json();
-                    throw new Error(errInfo.message || "Ошибка записи");
+                    throw new Error("Ошибка записи");
                 }
 
             } catch (e) {
-                console.error("Ошибка:", e);
-                if (e.message.includes('fetch')) {
-                    alert("❌ ОШИБКА FETCH!\n\n1. Попробуй режим Инкогнито.\n2. Убедись, что GitHub не удалил токен за публикацию.");
-                } else {
-                    alert("❌ ОШИБКА: " + e.message);
-                }
+                log("Ошибка!");
+                alert("🚨 ОШИБКА: " + e.message + "\n\nСовет: Если ты на телефоне, попробуй выключить VPN в самом браузере или зайди через Инкогнито.");
             } finally {
                 loader.style.display = "none";
             }
