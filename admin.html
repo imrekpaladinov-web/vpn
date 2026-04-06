@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost-Admin | UI 💀</title>
+    <title>Ghost-Admin | Control Center 💀</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -23,7 +23,6 @@
             min-height: 100vh;
         }
 
-        /* ТО САМОЕ СВЕЧЕНИЕ СЗАДИ */
         header {
             margin-top: 60px;
             position: relative;
@@ -52,7 +51,6 @@
             z-index: 1;
         }
 
-        /* ПОИСК */
         .search-box {
             margin-top: 40px;
             width: 90%;
@@ -74,7 +72,6 @@
 
         input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--ghost-glow); }
 
-        /* КАРТОЧКА ПРОФИЛЯ */
         .profile-card { 
             background: var(--card); 
             padding: 30px; 
@@ -83,7 +80,7 @@
             width: 90%;
             max-width: 400px; 
             margin-top: 30px;
-            display: none; /* Вылетает при поиске */
+            display: none;
             animation: slideUp 0.4s ease-out;
         }
 
@@ -93,6 +90,9 @@
         .status-tag { font-size: 11px; padding: 4px 10px; border-radius: 5px; text-transform: uppercase; font-weight: bold; }
         .tag-active { background: #064e3b; color: #10b981; }
         .tag-banned { background: #7f1d1d; color: #ef4444; }
+
+        .info-row { margin: 15px 0; font-size: 14px; color: #94a3b8; }
+        .info-row b { color: #f8fafc; }
 
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px; }
         
@@ -131,6 +131,10 @@
         <div class="profile-id" id="display-id">ID: GL-4150</div>
         <div id="display-status" class="status-tag">АКТИВЕН</div>
         
+        <div class="info-row">
+            Срок истечения: <b id="display-date">--.--.----</b>
+        </div>
+
         <div id="log">Статус: Ожидание...</div>
 
         <div class="btn-grid">
@@ -153,13 +157,13 @@
             if(id.length < 4) { card.style.display = 'none'; return; }
             if(!id.startsWith('GL-')) id = 'GL-' + id;
 
-            // Пытаемся найти юзера
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${R}/main/database/users/${id}.json?t=${Date.now()}`);
                 if(res.ok) {
                     const data = await res.json();
                     card.style.display = 'block';
                     document.getElementById('display-id').innerText = "ID: " + id;
+                    document.getElementById('display-date').innerText = data.expire_date || "Не установлен";
                     const status = document.getElementById('display-status');
                     status.innerText = data.active ? "СТАТУС: АКТИВЕН" : "СТАТУС: ЗАБАНЕН";
                     status.className = "status-tag " + (data.active ? "tag-active" : "tag-banned");
@@ -167,29 +171,32 @@
             } catch(e) { card.style.display = 'none'; }
         }
 
-        async function run(active) {
+        // Общая функция для обновления ЛЮБЫХ данных в JSON
+        async function updateDatabase(updates) {
             const statusLog = document.getElementById('log');
             let id = document.getElementById('targetId').value.trim();
             if(!id.startsWith('GL-')) id = 'GL-' + id;
 
             const url = `https://api.github.com/repos/${R}/contents/database/users/${id}.json`;
-            statusLog.innerText = "📟 Инициализация канала...";
+            statusLog.innerText = "📟 Связь с сервером...";
 
             try {
                 const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
-                if (!res.ok) throw new Error("Юзер не найден в БД");
+                if (!res.ok) throw new Error("Юзер не найден");
                 const file = await res.json();
                 
                 let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-                content.active = active;
+                
+                // Применяем новые данные (active или expire_date)
+                Object.assign(content, updates);
 
-                statusLog.innerText = "📟 Перезапись данных...";
+                statusLog.innerText = "📟 Сохранение...";
 
                 const putRes = await fetch(url, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: `Admin Action: ${id} set to ${active}`,
+                        message: `Admin Update: ${id}`,
                         content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
                         sha: file.sha
                     })
@@ -197,17 +204,27 @@
 
                 if (putRes.ok) {
                     statusLog.innerText = "✅ СИСТЕМА ОБНОВЛЕНА!";
-                    search(); // Обновляем инфу на карточке
-                } else { throw new Error("Ошибка доступа API"); }
+                    setTimeout(search, 1000); // Обновляем карточку через секунду
+                } else { throw new Error("Ошибка записи в GitHub"); }
             } catch (e) {
-                statusLog.innerText = "❌ КРИТИЧЕСКАЯ ОШИБКА";
+                statusLog.innerText = "❌ ОШИБКА";
                 alert(e.message);
             }
         }
 
+        // Вызов бана/разбана
+        function run(activeValue) {
+            updateDatabase({ active: activeValue });
+        }
+
+        // Вызов изменения даты
         function editDate() {
-            const newDate = prompt("Введите новую дату (например 01.05.2026):");
-            if(newDate) alert("Функция изменения даты через API будет добавлена в следующем модуле. Пока меняйте active.");
+            const newDate = prompt("Введите новую дату (например: 20.05.2026):", document.getElementById('display-date').innerText);
+            if(newDate && /^\d{2}\.\d{2}\.\d{4}$/.test(newDate)) {
+                updateDatabase({ expire_date: newDate });
+            } else if (newDate) {
+                alert("Неверный формат! Используй ДД.ММ.ГГГГ");
+            }
         }
     </script>
 </body>
