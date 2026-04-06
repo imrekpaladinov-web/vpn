@@ -16,22 +16,22 @@
         .btn-del { background: #ef4444; box-shadow: 0 4px 0 #991b1b; }
         button:active { transform: translateY(4px); box-shadow: none; }
         .loader { font-size: 12px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; }
-        #log { font-size: 10px; color: #64748b; margin-top: 15px; font-family: monospace; }
+        #log { font-size: 11px; color: #94a3b8; margin-top: 15px; font-family: monospace; background: #0f172a; padding: 10px; border-radius: 8px; width: 100%; }
     </style>
 </head>
 <body>
 
     <div class="admin-card">
         <h1>Ghost Admin</h1>
-        <input type="number" id="targetId" placeholder="ID (например 9727)" inputmode="numeric">
+        <input type="text" id="targetId" placeholder="ID (например 4150)">
         
         <div class="btn-group">
             <button class="btn-res" onclick="execute(true)">✅ РАЗБАНИТЬ</button>
             <button class="btn-del" onclick="execute(false)">❌ ЗАБАНИТЬ</button>
         </div>
         
-        <div id="loader" class="loader">📡 ПОДКЛЮЧЕНИЕ К КАНАЛУ...</div>
-        <div id="log">Статус: Ожидание</div>
+        <div id="loader" class="loader">📡 УСТАНОВКА СВЯЗИ...</div>
+        <div id="log">Статус: Готов к работе</div>
     </div>
 
     <script>
@@ -41,68 +41,81 @@
         const REPO = "imrekpaladinov-web/vpn"; 
 
         async function execute(status) {
-            const log = (txt) => document.getElementById('log').innerText = "Лог: " + txt;
+            const logElement = document.getElementById('log');
             const loader = document.getElementById('loader');
-            let id = document.getElementById('targetId').value.trim();
+            const log = (txt) => logElement.innerText = "📟 " + txt;
             
-            if(!id) return alert("Введите ID!");
-            if(!id.startsWith('GL-')) id = 'GL-' + id;
+            let rawId = document.getElementById('targetId').value.trim();
+            if(!rawId) return alert("Введите ID юзера!");
 
+            // Авто-фикс ID: если ввел "4150", превратит в "GL-4150"
+            let id = rawId.startsWith('GL-') ? rawId : 'GL-' + rawId;
             const path = `database/users/${id}.json`;
             const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
 
             loader.style.display = "block";
-            log("Запрос SHA...");
+            log("Поиск юзера в базе...");
 
             try {
-                // ШАГ 1: ПОЛУЧАЕМ ФАЙЛ С ЖЕСТКИМ ОБХОДОМ КЭША
-                const res = await fetch(url + "?nocache=" + Date.now(), {
+                // Используем правильные заголовки и метод Bearer
+                const res = await fetch(url + `?t=${Date.now()}`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `token ${TOKEN}`,
-                        'Accept': 'application/vnd.github.v3+json',
+                        'Authorization': `Bearer ${TOKEN}`,
+                        'Accept': 'application/vnd.github+json',
                         'Cache-Control': 'no-cache'
                     }
                 });
 
-                if (!res.ok) throw new Error("Юзер не найден или ошибка API");
+                if (res.status === 404) throw new Error(`Юзер ${id} не найден!`);
+                if (!res.ok) throw new Error("Ошибка GitHub API");
 
                 const file = await res.json();
-                log("Декодирование...");
                 
-                let data = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                // Декодирование контента (поддержка кириллицы)
+                let contentDecoded = decodeURIComponent(atob(file.content).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                let data = JSON.parse(contentDecoded);
+                
+                // Обновляем статус
                 data.active = status;
-                data.last_admin_action = new Date().toISOString();
+                data.updated_at = new Date().toISOString();
 
+                log("Подготовка данных...");
+                
+                // Кодируем обратно в Base64 корректно
                 const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 
-                log("Отправка изменений...");
+                log("Сохранение изменений...");
 
-                // ШАГ 2: ПУШИМ ОБРАТНО
                 const putRes = await fetch(url, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${TOKEN}`,
+                        'Authorization': `Bearer ${TOKEN}`,
                         'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json'
+                        'Accept': 'application/vnd.github+json'
                     },
                     body: JSON.stringify({
-                        message: `Admin fix: ${id}`,
+                        message: `Admin Action: ${status ? 'Unlock' : 'Ban'} ${id}`,
                         content: newContent,
                         sha: file.sha
                     })
                 });
 
                 if (putRes.ok) {
-                    log("Успешно!");
-                    alert(`✅ ID ${id} теперь ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
+                    log("УСПЕШНО!");
+                    alert(`✅ Готово! Юзер ${id} теперь ${status ? 'активен' : 'заблокирован'}.`);
                 } else {
-                    throw new Error("Ошибка записи");
+                    const errData = await putRes.json();
+                    throw new Error(errData.message || "Ошибка записи");
                 }
 
             } catch (e) {
-                log("Ошибка!");
-                alert("🚨 ОШИБКА: " + e.message + "\n\nСовет: Если ты на телефоне, попробуй выключить VPN в самом браузере или зайди через Инкогнито.");
+                log("ОШИБКА!");
+                console.error(e);
+                alert("🚨 ОШИБКА:\n" + e.message);
             } finally {
                 loader.style.display = "none";
             }
