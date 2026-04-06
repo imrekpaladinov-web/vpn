@@ -1,8 +1,8 @@
 #profile-title: Ghost Link | GL-4150
 #profile-update-interval: 1
-#version: 1775512933
+#version: 1775513320
 #subscription-userinfo: upload=0; download=0; total=109951162777600; expire=253402214400
-#announce: ✅ Активно до: 01.01.2027 | ID: GL-4150 ⚡️
+#announce: ✅ Активно до: 01.01.2030 | ID: GL-4150 ⚡️
 
 
 vless://bce8aaaa-31a5-1b20-3bfb-fc928165e712@146.19.90.2:993?security=reality&encryption=none&pbk=oE7ZEghzkaOUiw1q3PqBtpllP1NlPHLY8ydJRuICtko&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=speed.cloudflare.com#GhostLink_Основной_GL-4150
