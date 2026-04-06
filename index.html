@@ -91,6 +91,18 @@
                 if(res.ok) {
                     const data = await res.json();
                     document.getElementById('user-status').innerText = data.active ? "Активен" : "Забанен";
+                    
+                    // ДОБАВЛЕНО: Отображение даты истечения в карточку
+                    if(data.expire_date) {
+                        const statusBox = document.querySelector('.status-box');
+                        if(!document.getElementById('expire-row')) {
+                            const div = document.createElement('div');
+                            div.className = 'status-row';
+                            div.id = 'expire-row';
+                            div.innerHTML = `<span class="label">Истекает:</span><span class="value">${data.expire_date}</span>`;
+                            statusBox.appendChild(div);
+                        }
+                    }
                 } else {
                     document.getElementById('user-status').innerText = "Новый юзер";
                 }
@@ -104,41 +116,44 @@
             const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/${subPath}`;
             
             notify.classList.add('active');
-            notifyText.innerText = "⚡️ Настраиваю личные сервера...";
+            notifyText.innerText = "⚡️ Синхронизация серверов...";
 
             try {
                 // 1. Получаем список общих серверов
                 const resGen = await fetch(`https://raw.githubusercontent.com/${REPO}/main/access_control.json?t=${Date.now()}`);
                 const genData = await resGen.json();
-                let finalLinks = [...genData.server_list];
+                let rawLinks = [...genData.server_list];
 
-                // 2. Получаем данные юзера и его ЛИЧНЫЕ сервера из админки
+                // 2. Получаем личные сервера из админки
                 const resUser = await fetch(`https://raw.githubusercontent.com/${REPO}/main/database/users/${userId}.json?t=${Date.now()}`);
-                let userFileSHA = null;
                 if (resUser.ok) {
                     const userData = await resUser.json();
-                    userFileSHA = userData.sha; // для обновления JSON если нужно
                     if (userData.personal_servers && Array.isArray(userData.personal_servers)) {
-                        finalLinks = finalLinks.concat(userData.personal_servers);
+                        rawLinks = rawLinks.concat(userData.personal_servers);
                     }
                 }
 
-                // 3. Формируем текст подписки
-                const subText = finalLinks.join('\n');
+                // ИСПРАВЛЕНИЕ: Очищаем ссылки от хвостов типа "#Имя"
+                // Оставляем только саму vless/vmess ссылку и фильтруем пустые строки
+                const cleanLinks = rawLinks
+                    .map(link => link ? link.split('#')[0].trim() : null)
+                    .filter(link => link && link.length > 5);
+
+                const subText = cleanLinks.join('\n');
                 const subBase64 = btoa(unescape(encodeURIComponent(subText)));
 
-                // 4. Проверяем SHA существующей подписки (чтобы избежать 404/конфликтов)
+                // 3. SHA для обновления подписки
                 const checkSub = await fetch(`https://api.github.com/repos/${REPO}/contents/${subPath}`, {
                     headers: { 'Authorization': `token ${GH_TOKEN}` }
                 });
                 let subSHA = checkSub.ok ? (await checkSub.json()).sha : null;
 
-                // 5. Мгновенно обновляем файл подписки на GitHub
+                // 4. Обновление подписки на GitHub
                 const updateSub = await fetch(`https://api.github.com/repos/${REPO}/contents/${subPath}`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        message: `Sub update for ${userId}`, 
+                        message: `Subscription sync for ${userId}`, 
                         content: subBase64, 
                         sha: subSHA 
                     })
@@ -148,11 +163,12 @@
                     notifyText.innerText = "✅ Готово! Импортирую...";
                     setTimeout(() => {
                         notify.classList.remove('active');
+                        const ts = Date.now();
                         let finalUrl;
                         if (platform === 'Android') {
-                            finalUrl = `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${Date.now()}`;
+                            finalUrl = `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${ts}`;
                         } else {
-                            finalUrl = `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${Date.now()}`;
+                            finalUrl = `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${ts}`;
                         }
                         window.location.href = finalUrl;
                     }, 1200);
@@ -160,7 +176,7 @@
 
             } catch (e) {
                 console.error(e);
-                notifyText.innerText = "❌ Ошибка. Попробуйте снова.";
+                notifyText.innerText = "❌ Ошибка синхронизации. Попробуйте еще раз.";
                 setTimeout(() => notify.classList.remove('active'), 3000);
             }
         }
