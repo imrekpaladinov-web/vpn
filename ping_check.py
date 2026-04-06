@@ -26,7 +26,6 @@ def build_subscription():
     total_traffic = 109951162777600 
     update_ts = int(time.time())
     
-    # Получаем текущую дату для сравнения
     now_dt = datetime.datetime.now()
 
     for file_name in user_files:
@@ -41,35 +40,36 @@ def build_subscription():
             is_active = user_data.get("active", True)
             status_announce = f"✅ Активно до: {exp_date_str}"
 
-            # 2. АВТО-ПРОВЕРКА СРОКА (МАГИЯ БАНА)
+            # 2. АВТО-ПРОВЕРКА СРОКА
             try:
-                # Превращаем строку "ДД.ММ.ГГГГ" в дату
                 expire_dt = datetime.datetime.strptime(exp_date_str, "%d.%m.%Y")
-                
-                # Если сегодня больше, чем дата в конфиге — баним
                 if now_dt > expire_dt:
                     is_active = False
                     status_announce = f"❌ СРОК ИСТЕК ({exp_date_str})"
             except Exception as e:
-                print(f"⚠️ Ошибка формата даты у {u_id_raw}: {e}")
+                print(f"⚠️ Ошибка даты {u_id_raw}: {e}")
 
             # 3. ФОРМИРУЕМ КОНТЕНТ
             if not is_active:
-                # --- ЕСЛИ ЗАБАНЕН ИЛИ СРОК ВЫШЕЛ ---
-                header = f"#profile-title: 🟥 Ghost Link | BANNED\n"
+                # --- ЛОГИКА БАНА (ДВЕ ПЛАШКИ-ПУСТЫШКИ) ---
+                header = f"#profile-title: 🟥 Ghost Link | ЗАБЛОКИРОВАНО\n"
                 header += f"#profile-update-interval: 1\n"
                 header += f"#version: {update_ts}\n"
-                header += f"#announce: {status_announce}. Доступ закрыт. Обратитесь к @admin\n\n"
+                header += f"#announce: {status_announce}. Для продления пишите @admin\n\n"
                 
-                banned_msg = f"vless://banned-id@127.0.0.1:443?remarks=🟥%20BANNED%20%7C%20ПОДПИСКА%20ИСТЕКЛА#GhostLink_System"
-                final_text = header + banned_msg
+                # Первая строка: Статус
+                line1 = f"vless://expired-id@127.0.0.1:443?encryption=none&security=none#🟥 ПОДПИСКА ИСТЕКЛА"
+                # Вторая строка: ID пользователя (как ты просил)
+                line2 = f"vless://user-id@127.0.0.1:443?encryption=none&security=none#🆔 ID: {u_id_raw}"
+                
+                final_text = header + line1 + "\n" + line2
             else:
-                # --- ЕСЛИ ВСЁ ХОРОШО ---
+                # --- ЛОГИКА РАБОЧЕЙ ПОДПИСКИ ---
                 header = f"#profile-title: Ghost Link | {u_id_raw}\n"
                 header += f"#profile-update-interval: 1\n"
                 header += f"#version: {update_ts}\n"
                 header += f"#subscription-userinfo: upload=0; download=0; total={total_traffic}; expire=253402214400\n"
-                header += f"#announce: {status_announce} | ID: {u_id_raw} ⚡️ Приятного пользования!\n\n"
+                header += f"#announce: {status_announce} | ID: {u_id_raw} ⚡️\n\n"
                 
                 user_configs = [header]
                 for i, link in enumerate(master_links):
