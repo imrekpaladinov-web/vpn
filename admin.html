@@ -82,7 +82,7 @@
 
     <div id="users-sec" class="section active">
         <div class="search-box">
-            <input type="text" id="targetId" placeholder="Введите ID юзера..." oninput="searchUser()">
+            <input type="text" id="targetId" placeholder="Введите ID юзера (напр. 4150)" oninput="searchUser()">
         </div>
         <div class="profile-card" id="profile" style="display:none;">
             <div style="font-size: 20px; font-weight: bold;" id="display-id">ID: --</div>
@@ -126,7 +126,7 @@
         let configSHA = "";
         let editIndex = -1;
 
-        // Переключение табов
+        // ПЕРЕКЛЮЧЕНИЕ ТАБОВ
         function switchTab(sec, el) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -135,39 +135,134 @@
             if(sec === 'configs') loadConfigs();
         }
 
-        // --- ЛОГИКА ЮЗЕРОВ ---
+        // ЛОГИКА ЮЗЕРОВ
         async function searchUser() {
-            let id = document.getElementById('targetId').value.trim();
-            if(id.length < 4) { document.getElementById('profile').style.display = 'none'; return; }
-            if(!id.startsWith('GL-')) id = 'GL-' + id;
+            let idInput = document.getElementById('targetId').value.trim();
+            const card = document.getElementById('profile');
+            if(idInput.length < 4) { card.style.display = 'none'; return; }
+            const fullId = idInput.startsWith('GL-') ? idInput : 'GL-' + idInput;
+
             try {
-                const res = await fetch(`https://raw.githubusercontent.com/${R}/main/database/users/${id}.json?t=${Date.now()}`);
+                const res = await fetch(`https://raw.githubusercontent.com/${R}/main/database/users/${fullId}.json?t=${Date.now()}`);
                 if(res.ok) {
                     const data = await res.json();
-                    document.getElementById('profile').style.display = 'block';
-                    document.getElementById('display-id').innerText = "ID: " + id;
+                    card.style.display = 'block';
+                    document.getElementById('display-id').innerText = "ID: " + fullId;
                     document.getElementById('display-date').innerText = data.expire_date || "---";
                     const status = document.getElementById('display-status');
                     status.innerText = data.active ? "СТАТУС: АКТИВЕН" : "СТАТУС: ЗАБАНЕН";
                     status.className = "status-tag " + (data.active ? "tag-active" : "tag-banned");
-                }
-            } catch(e) {}
+                } else { card.style.display = 'none'; }
+            } catch(e) { card.style.display = 'none'; }
         }
 
         async function updateUserData(updates) {
             const log = document.getElementById('user-log');
             let id = document.getElementById('targetId').value.trim();
-            if(!id.startsWith('GL-')) id = 'GL-' + id;
+            const fullId = id.startsWith('GL-') ? id : 'GL-' + id;
             log.innerText = "📟 Соединение...";
-            const url = `https://api.github.com/repos/${R}/contents/database/users/${id}.json`;
-            const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
-            const file = await res.json();
-            let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-            Object.assign(content, updates);
-            const putRes = await fetch(url, {
+            const url = `https://api.github.com/repos/${R}/contents/database/users/${fullId}.json`;
+            
+            try {
+                const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
+                const file = await res.json();
+                let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                Object.assign(content, updates);
+
+                const putRes = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `Admin Update: ${fullId}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: file.sha })
+                });
+                if(putRes.ok) { log.innerText = "✅ ВЫПОЛНЕНО"; setTimeout(searchUser, 500); }
+            } catch(e) { log.innerText = "❌ ОШИБКА"; }
+        }
+
+        function runAction(v) { updateUserData({ active: v }); }
+        function editDate() {
+            const d = prompt("Новая дата (ДД.ММ.ГГГГ):", document.getElementById('display-date').innerText);
+            if(d && /^\d{2}\.\d{2}\.\d{4}$/.test(d)) updateUserData({ expire_date: d });
+        }
+
+        // ЛОГИКА КОНФИГОВ
+        async function loadConfigs() {
+            const list = document.getElementById('config-list');
+            list.innerHTML = "<div style='text-align:center; opacity:0.5; padding:20px;'>Загрузка узлов...</div>";
+            try {
+                const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json?t=${Date.now()}`, {
+                    headers: { 'Authorization': `token ${T}` }
+                });
+                const data = await res.json();
+                configSHA = data.sha;
+                globalConfig = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                renderConfigs();
+            } catch(e) { list.innerHTML = "<div style='color:red; text-align:center;'>Ошибка</div>"; }
+        }
+
+        function renderConfigs() {
+            const list = document.getElementById('config-list');
+            list.innerHTML = "";
+            if(!globalConfig.server_list) return;
+            globalConfig.server_list.forEach((url, i) => {
+                const [link, name] = url.split('#');
+                list.innerHTML += `
+                    <div class="config-item">
+                        <div class="config-info">
+                            <span class="conf-name">⚡️ ${name || 'Локация'}</span>
+                            <span class="conf-url">${link}</span>
+                        </div>
+                        <div class="gear-btn" onclick="openConfigModal(${i})">⚙️</div>
+                    </div>`;
+            });
+        }
+
+        function openConfigModal(idx) {
+            editIndex = idx;
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            if(idx === -1) {
+                document.getElementById('modal-title').innerText = "Новый узел";
+                document.getElementById('edit-name').value = "";
+                document.getElementById('edit-url').value = "";
+                document.getElementById('del-conf-btn').style.display = 'none';
+            } else {
+                const [link, name] = globalConfig.server_list[idx].split('#');
+                document.getElementById('edit-name').value = name || "";
+                document.getElementById('edit-url').value = link;
+                document.getElementById('del-conf-btn').style.display = 'block';
+            }
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
+
+        async function saveConfig() {
+            const name = document.getElementById('edit-name').value.trim();
+            const link = document.getElementById('edit-url').value.trim();
+            if(!link) return alert("Нужна ссылка!");
+            const entry = `${link}#${name}`;
+            if(editIndex === -1) globalConfig.server_list.push(entry);
+            else globalConfig.server_list[editIndex] = entry;
+            
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(globalConfig, null, 2))));
+            const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json`, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `Admin Update: ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: file.sha })
+                body: JSON.stringify({ message: "Admin: Config Update", content: content, sha: configSHA })
             });
-            if(putRes.ok) { log.innerText = "✅ ВЫПОЛНЕНО";
-        
+            if(res.ok) { closeModal(); loadConfigs(); }
+        }
+
+        async function deleteConfig() {
+            if(!confirm("Удалить?")) return;
+            globalConfig.server_list.splice(editIndex, 1);
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(globalConfig, null, 2))));
+            const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json`, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "Admin: Config Delete", content: content, sha: configSHA })
+            });
+            if(res.ok) { closeModal(); loadConfigs(); }
+        }
+    </script>
+</body>
+</html>
