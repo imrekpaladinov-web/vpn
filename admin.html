@@ -16,7 +16,7 @@
         .btn-del { background: #ef4444; box-shadow: 0 4px 0 #991b1b; }
         button:active { transform: translateY(4px); box-shadow: none; }
         .loader { font-size: 12px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; }
-        #log { font-size: 11px; color: #94a3b8; margin-top: 15px; font-family: monospace; background: #0f172a; padding: 10px; border-radius: 8px; width: 100%; }
+        #log { font-size: 11px; color: #94a3b8; margin-top: 15px; font-family: monospace; background: #0f172a; padding: 10px; border-radius: 8px; width: 100%; min-height: 40px; }
     </style>
 </head>
 <body>
@@ -30,8 +30,8 @@
             <button class="btn-del" onclick="execute(false)">❌ ЗАБАНИТЬ</button>
         </div>
         
-        <div id="loader" class="loader">📡 УСТАНОВКА СВЯЗИ...</div>
-        <div id="log">Статус: Готов к работе</div>
+        <div id="loader" class="loader">📡 ПОДКЛЮЧЕНИЕ К СПУТНИКУ...</div>
+        <div id="log">Статус: Система готова</div>
     </div>
 
     <script>
@@ -46,76 +46,67 @@
             const log = (txt) => logElement.innerText = "📟 " + txt;
             
             let rawId = document.getElementById('targetId').value.trim();
-            if(!rawId) return alert("Введите ID юзера!");
+            if(!rawId) return alert("Введите ID!");
 
-            // Авто-фикс ID: если ввел "4150", превратит в "GL-4150"
             let id = rawId.startsWith('GL-') ? rawId : 'GL-' + rawId;
             const path = `database/users/${id}.json`;
             const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
 
             loader.style.display = "block";
-            log("Поиск юзера в базе...");
+            log("Запрос доступа...");
 
             try {
-                // Используем правильные заголовки и метод Bearer
-                const res = await fetch(url + `?t=${Date.now()}`, {
+                // ШАГ 1: ПОЛУЧАЕМ ФАЙЛ (Минимальные заголовки для обхода CORS)
+                const res = await fetch(url + `?v=${Date.now()}`, {
                     method: 'GET',
+                    mode: 'cors',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN}`,
-                        'Accept': 'application/vnd.github+json',
-                        'Cache-Control': 'no-cache'
+                        'Authorization': `token ${TOKEN}`,
+                        'Accept': 'application/vnd.github.v3+json'
                     }
                 });
 
-                if (res.status === 404) throw new Error(`Юзер ${id} не найден!`);
-                if (!res.ok) throw new Error("Ошибка GitHub API");
+                if (res.status === 404) throw new Error("Юзер не найден!");
+                if (!res.ok) throw new Error("GitHub отклонил запрос");
 
                 const file = await res.json();
                 
-                // Декодирование контента (поддержка кириллицы)
-                let contentDecoded = decodeURIComponent(atob(file.content).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                
-                let data = JSON.parse(contentDecoded);
-                
-                // Обновляем статус
+                // Декодирование
+                let data = JSON.parse(decodeURIComponent(escape(atob(file.content))));
                 data.active = status;
-                data.updated_at = new Date().toISOString();
+                data.last_mod = new Date().toLocaleString();
 
-                log("Подготовка данных...");
-                
-                // Кодируем обратно в Base64 корректно
+                log("Шифрование данных...");
                 const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
 
-                log("Сохранение изменений...");
+                log("Отправка пакета...");
 
+                // ШАГ 2: СОХРАНЯЕМ
                 const putRes = await fetch(url, {
                     method: 'PUT',
+                    mode: 'cors',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github+json'
+                        'Authorization': `token ${TOKEN}`,
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Admin Action: ${status ? 'Unlock' : 'Ban'} ${id}`,
+                        message: `Admin action for ${id}`,
                         content: newContent,
                         sha: file.sha
                     })
                 });
 
                 if (putRes.ok) {
-                    log("УСПЕШНО!");
-                    alert(`✅ Готово! Юзер ${id} теперь ${status ? 'активен' : 'заблокирован'}.`);
+                    log("ДОСТУП ИЗМЕНЕН!");
+                    alert(`✅ ID ${id} теперь ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
                 } else {
-                    const errData = await putRes.json();
-                    throw new Error(errData.message || "Ошибка записи");
+                    throw new Error("Ошибка записи в базу");
                 }
 
             } catch (e) {
-                log("ОШИБКА!");
+                log("СБОЙ СЕТИ!");
                 console.error(e);
-                alert("🚨 ОШИБКА:\n" + e.message);
+                alert("🚨 " + e.message + "\n\nПопробуй зайти через вкладку Инкогнито или смени браузер.");
             } finally {
                 loader.style.display = "none";
             }
