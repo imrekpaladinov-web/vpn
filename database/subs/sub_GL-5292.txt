@@ -1,6 +1,6 @@
 #profile-title: Ghost Link | GL-5292
 #profile-update-interval: 1
-#subscription-userinfo: upload=0; download=0; total=109951162777600; expire=4929064063
+#subscription-userinfo: upload=0; download=0; total=109951162777600; expire=4929064083
 #announce: Если не работает Обновляйте подписку 🔄 Новые конфиги появляются регулярно! 💡 GL-5292
 
 
