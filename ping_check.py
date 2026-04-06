@@ -23,12 +23,11 @@ def build_subscription():
     user_files = [f for f in os.listdir(USERS_DIR) if f.endswith('.json')]
     
     labels = ["Основной", "Резерв", "Запасной", "YouTube", "Social Media"]
-
-    # Лимиты трафика (бесконечность)
     total_traffic = 109951162777600 
-    
-    # Метка времени для пробития кэша на iPhone
     update_ts = int(time.time())
+    
+    # Получаем текущую дату для сравнения
+    now_dt = datetime.datetime.now()
 
     for file_name in user_files:
         try:
@@ -37,45 +36,55 @@ def build_subscription():
             with open(os.path.join(USERS_DIR, file_name), 'r', encoding='utf-8') as f:
                 user_data = json.load(f)
             
-            # Берем дату из JSON или ставим 100 лет вперед
-            exp_date_raw = user_data.get("expire_date", "31.12.2099")
-            
-            # Шапка профиля
-            header = f"#profile-title: Ghost Link | {u_id_raw}\n"
-            header += f"#profile-update-interval: 1\n"
-            header += f"#version: {update_ts}\n" # Магия против кэша
-            
-            # Проверяем СТАТУС (Бан или Активен)
+            # 1. ПОЛУЧАЕМ ДАТУ И СТАТУС ИЗ JSON
+            exp_date_str = user_data.get("expire_date", "31.12.2099")
             is_active = user_data.get("active", True)
+            status_announce = f"✅ Активно до: {exp_date_str}"
 
-            if not is_active:
-                # --- ЛОГИКА БАНА ---
-                header = f"#profile-title: 🟥 ПОДПИСКА НЕДОСТУПНА | BANNED\n"
-                header += f"#announce: ⚠️ ДОСТУП ЗАКРЫТ. Обратитесь к @admin для продления.\n\n"
+            # 2. АВТО-ПРОВЕРКА СРОКА (МАГИЯ БАНА)
+            try:
+                # Превращаем строку "ДД.ММ.ГГГГ" в дату
+                expire_dt = datetime.datetime.strptime(exp_date_str, "%d.%m.%Y")
                 
-                # Одна нерабочая ссылка с жирным текстом
+                # Если сегодня больше, чем дата в конфиге — баним
+                if now_dt > expire_dt:
+                    is_active = False
+                    status_announce = f"❌ СРОК ИСТЕК ({exp_date_str})"
+            except Exception as e:
+                print(f"⚠️ Ошибка формата даты у {u_id_raw}: {e}")
+
+            # 3. ФОРМИРУЕМ КОНТЕНТ
+            if not is_active:
+                # --- ЕСЛИ ЗАБАНЕН ИЛИ СРОК ВЫШЕЛ ---
+                header = f"#profile-title: 🟥 Ghost Link | BANNED\n"
+                header += f"#profile-update-interval: 1\n"
+                header += f"#version: {update_ts}\n"
+                header += f"#announce: {status_announce}. Доступ закрыт. Обратитесь к @admin\n\n"
+                
                 banned_msg = f"vless://banned-id@127.0.0.1:443?remarks=🟥%20BANNED%20%7C%20ПОДПИСКА%20ИСТЕКЛА#GhostLink_System"
                 final_text = header + banned_msg
             else:
-                # --- ЛОГИКА РАБОЧЕЙ ПОДПИСКИ ---
+                # --- ЕСЛИ ВСЁ ХОРОШО ---
+                header = f"#profile-title: Ghost Link | {u_id_raw}\n"
+                header += f"#profile-update-interval: 1\n"
+                header += f"#version: {update_ts}\n"
                 header += f"#subscription-userinfo: upload=0; download=0; total={total_traffic}; expire=253402214400\n"
-                header += f"#announce: ✅ Активно до: {exp_date_raw} | ID: {u_id_raw}\n\n"
+                header += f"#announce: {status_announce} | ID: {u_id_raw} ⚡️ Приятного пользования!\n\n"
                 
                 user_configs = [header]
                 for i, link in enumerate(master_links):
                     clean_link = link.split('#')[0]
                     tag = labels[i] if i < len(labels) else f"Сервер {i+1}"
-                    # Формируем красивую ссылку без лишних пробелов
                     user_configs.append(f"{clean_link}#GhostLink_{tag}_{u_id_raw}")
                 
                 final_text = "\n".join(user_configs)
             
-            # Сохраняем файл (sub_GL-4150.txt)
+            # 4. СОХРАНЯЕМ ФАЙЛ
             file_path = os.path.join(SUBS_DIR, f"sub_{u_id_raw}.txt")
             with open(file_path, "w", encoding='utf-8') as f:
                 f.write(final_text)
                 
-            print(f"🚀 {'BANNED' if not is_active else 'ACTIVE'} -> {file_path}")
+            print(f"🚀 {u_id_raw}: {'BANNED' if not is_active else 'OK'}")
 
         except Exception as e:
             print(f"⚠️ Ошибка в файле {file_name}: {e}")
