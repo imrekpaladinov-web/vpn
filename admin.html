@@ -14,59 +14,45 @@
             --success: #22c55e;
         }
 
-        body { 
-            background: var(--bg); 
-            color: #f8fafc; 
-            font-family: 'Inter', sans-serif; 
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
+        body { background: var(--bg); color: #f8fafc; font-family: 'Inter', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        header { margin-top: 30px; text-align: center; margin-bottom: 20px; }
+        .logo { font-size: 2.2rem; font-weight: 900; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; text-shadow: 0 0 15px var(--ghost-glow); }
 
-        header { margin-top: 40px; position: relative; text-align: center; margin-bottom: 20px; }
-        .logo { font-size: 2.5rem; font-weight: 900; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; text-shadow: 0 0 15px var(--ghost-glow); }
-
-        /* ТАБЫ */
-        .tabs { display: flex; gap: 10px; background: #020617; padding: 5px; border-radius: 15px; width: 90%; max-width: 450px; margin-bottom: 25px; }
-        .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 10px; transition: 0.3s; color: #64748b; font-weight: bold; font-size: 14px; }
+        .tabs { display: flex; gap: 8px; background: #020617; padding: 5px; border-radius: 12px; width: 92%; max-width: 450px; margin-bottom: 20px; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 8px; transition: 0.3s; color: #64748b; font-weight: bold; font-size: 13px; }
         .tab.active { background: var(--accent); color: #0f172a; }
 
         .section { display: none; width: 100%; flex-direction: column; align-items: center; }
         .section.active { display: flex; }
 
-        /* ПОИСК И КАРТОЧКА ЮЗЕРА */
-        .search-box { width: 90%; max-width: 450px; }
-        input { width: 100%; padding: 16px; background: #020617; color: white; border: 1px solid #334155; border-radius: 15px; outline: none; box-sizing: border-box; transition: 0.3s; margin-bottom: 15px; }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 15px var(--ghost-glow); }
+        input { width: 100%; padding: 14px; background: #020617; color: white; border: 1px solid #334155; border-radius: 12px; outline: none; box-sizing: border-box; margin-bottom: 10px; font-size: 14px; }
+        input:focus { border-color: var(--accent); }
 
-        .profile-card { background: var(--card); padding: 25px; border-radius: 25px; border: 1px solid #334155; width: 90%; max-width: 400px; animation: slideUp 0.4s ease-out; }
+        .profile-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; width: 90%; max-width: 420px; animation: fadeIn 0.3s ease; }
         
-        /* КОНФИГИ (СПИСОК) */
-        .config-list { width: 90%; max-width: 450px; display: flex; flex-direction: column; gap: 12px; }
-        .config-item { background: var(--card); padding: 15px 20px; border-radius: 18px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .config-list { width: 90%; max-width: 450px; display: flex; flex-direction: column; gap: 10px; }
+        .config-item { background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
         .config-item:hover { border-color: var(--accent); }
-        .config-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-        .conf-name { font-weight: bold; color: #f8fafc; font-size: 15px; }
-        .conf-url { font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace; }
-        .gear-btn { cursor: pointer; font-size: 20px; color: var(--accent); padding: 5px; transition: 0.3s; }
-        .gear-btn:hover { transform: rotate(90deg); }
-
-        /* КНОПКИ */
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-        button { padding: 12px; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .conf-name { font-weight: bold; font-size: 14px; color: #f1f5f9; }
+        .conf-url { font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; font-family: monospace; }
+        
+        .gear-btn { cursor: pointer; font-size: 18px; color: var(--accent); padding: 5px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        button { padding: 12px; border-radius: 10px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
         .btn-res { background: var(--success); }
         .btn-del { background: var(--danger); }
         .btn-date { background: #3b82f6; grid-column: span 2; }
-        .btn-add { background: var(--success); width: 90%; max-width: 450px; margin-bottom: 20px; font-size: 14px; }
+        .btn-add { background: var(--success); width: 90%; max-width: 450px; margin-bottom: 15px; font-size: 13px; }
 
-        /* МОДАЛКА */
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; backdrop-filter: blur(4px); }
-        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #020617; border: 1px solid var(--accent); padding: 25px; border-radius: 25px; z-index: 1000; width: 85%; max-width: 350px; box-shadow: 0 0 30px var(--ghost-glow); }
+        .personal-area { margin-top: 20px; padding-top: 15px; border-top: 1px solid #334155; }
+        .area-title { font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; }
+
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; backdrop-filter: blur(5px); }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0f172a; border: 1px solid var(--accent); padding: 25px; border-radius: 20px; z-index: 1000; width: 85%; max-width: 340px; box-shadow: 0 0 40px var(--ghost-glow); }
         
-        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        .status-tag { font-size: 10px; padding: 3px 8px; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 5px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .status-tag { font-size: 10px; padding: 4px 10px; border-radius: 6px; font-weight: bold; }
         .tag-active { background: #064e3b; color: #10b981; }
         .tag-banned { background: #7f1d1d; color: #ef4444; }
     </style>
@@ -76,43 +62,49 @@
     <header><div class="logo">Ghost-Admin</div></header>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('users', this)">Юзеры</div>
-        <div class="tab" onclick="switchTab('configs', this)">Конфиги</div>
+        <div class="tab active" onclick="switchTab('users', this)">Юзеры / Личные</div>
+        <div class="tab" onclick="switchTab('configs', this)">Общие Конфиги</div>
     </div>
 
     <div id="users-sec" class="section active">
-        <div class="search-box">
-            <input type="text" id="targetId" placeholder="Введите ID юзера (напр. 4150)" oninput="searchUser()">
-        </div>
+        <div style="width:90%; max-width:450px;"><input type="text" id="targetId" placeholder="Введите ID юзера..." oninput="searchUser()"></div>
         <div class="profile-card" id="profile" style="display:none;">
-            <div style="font-size: 20px; font-weight: bold;" id="display-id">ID: --</div>
-            <div id="display-status" class="status-tag">СТАТУС</div>
-            <div style="margin: 15px 0; font-size: 14px;">Срок: <b id="display-date">--.--.----</b></div>
-            <div id="user-log" style="font-size:11px; color:#64748b; font-family:monospace;">Лог: Ожидание...</div>
-            <div class="btn-grid">
-                <button class="btn-res" onclick="runAction(true)">✅ РАЗБАНИТЬ</button>
-                <button class="btn-del" onclick="runAction(false)">❌ ЗАБАНИТЬ</button>
-                <button class="btn-date" onclick="editDate()">📅 ИЗМЕНИТЬ СРОК</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="font-size: 18px; font-weight: 800;" id="display-id">ID: --</div>
+                <div id="display-status" class="status-tag">СТАТУС</div>
             </div>
+            <div style="font-size: 13px; margin-bottom: 15px;">Доступ до: <b id="display-date">--.--.----</b></div>
+            
+            <div class="btn-grid">
+                <button class="btn-res" onclick="runAction(true)">✅ РАЗБЛОКИРОВАТЬ</button>
+                <button class="btn-del" onclick="runAction(false)">❌ ЗАБЛОКИРОВАТЬ</button>
+                <button class="btn-date" onclick="editDate()">📅 ИЗМЕНИТЬ ДАТУ</button>
+            </div>
+
+            <div class="personal-area">
+                <div class="area-title">💎 Персональные конфиги (только для него)</div>
+                <div id="personal-list" class="config-list" style="width:100%;"></div>
+                <button class="btn-res" style="width:100%; margin-top:10px; font-size:12px;" onclick="openConfigModal(-1, true)">➕ ДОБАВИТЬ ЛИЧНУЮ ЛОКАЦИЮ</button>
+            </div>
+            <div id="user-log" style="font-size:10px; color:#64748b; margin-top:20px; font-family:monospace; text-align:center;">Ожидание команд...</div>
         </div>
     </div>
 
     <div id="configs-sec" class="section">
-        <button class="btn btn-add" onclick="openConfigModal(-1)">➕ ДОБАВИТЬ ЛОКАЦИЮ</button>
-        <div class="config-list" id="config-list">
-            </div>
+        <button class="btn btn-add" onclick="openConfigModal(-1, false)">➕ ДОБАВИТЬ ОБЩУЮ ЛОКАЦИЮ</button>
+        <div class="config-list" id="config-list"></div>
     </div>
 
     <div class="overlay" id="overlay" onclick="closeModal()"></div>
     <div class="modal" id="modal">
-        <h3 id="modal-title" style="margin-top:0; color:var(--accent);">Настройка узла</h3>
-        <label style="font-size:12px; color:#64748b;">Название (после #):</label>
-        <input type="text" id="edit-name" placeholder="Напр: 🇩🇪 Германия-1">
-        <label style="font-size:12px; color:#64748b;">Ссылка (vless://):</label>
-        <input type="text" id="edit-url" placeholder="vless://...">
+        <h3 id="modal-title" style="margin-top:0; color:var(--accent); font-size:18px;">Редактирование</h3>
+        <label style="font-size:11px; color:#64748b;">Название (отобразится в VPN):</label>
+        <input type="text" id="edit-name" placeholder="Напр: 🇺🇸 USA-Premium">
+        <label style="font-size:11px; color:#64748b;">Конфиг (vless://...):</label>
+        <input type="text" id="edit-url" placeholder="Вставьте ссылку">
         
-        <button class="btn btn-res" style="width:100%; margin-bottom:10px;" onclick="saveConfig()">💾 СОХРАНИТЬ</button>
-        <button class="btn btn-del" id="del-conf-btn" style="width:100%; margin-bottom:10px;" onclick="deleteConfig()">🗑 УДАЛИТЬ</button>
+        <button class="btn btn-res" style="width:100%; margin-bottom:10px; font-size:13px;" id="save-btn">💾 СОХРАНИТЬ</button>
+        <button class="btn btn-del" id="del-conf-btn" style="width:100%; margin-bottom:10px; font-size:13px;">🗑 УДАЛИТЬ</button>
         <button class="btn" style="background:#334155; width:100%;" onclick="closeModal()">ОТМЕНА</button>
     </div>
 
@@ -123,19 +115,20 @@
         const R = "imrekpaladinov-web/vpn"; 
 
         let globalConfig = { server_list: [] };
+        let currentUserData = null;
         let configSHA = "";
+        let userFileSHA = "";
         let editIndex = -1;
+        let isPersonalEdit = false;
 
-        // ПЕРЕКЛЮЧЕНИЕ ТАБОВ
         function switchTab(sec, el) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             el.classList.add('active');
             document.getElementById(sec + '-sec').classList.add('active');
-            if(sec === 'configs') loadConfigs();
+            if(sec === 'configs') loadGlobalConfigs();
         }
 
-        // ЛОГИКА ЮЗЕРОВ
         async function searchUser() {
             let idInput = document.getElementById('targetId').value.trim();
             const card = document.getElementById('profile');
@@ -143,126 +136,148 @@
             const fullId = idInput.startsWith('GL-') ? idInput : 'GL-' + idInput;
 
             try {
-                const res = await fetch(`https://raw.githubusercontent.com/${R}/main/database/users/${fullId}.json?t=${Date.now()}`);
+                const res = await fetch(`https://api.github.com/repos/${R}/contents/database/users/${fullId}.json?t=${Date.now()}`, {
+                    headers: { 'Authorization': `token ${T}` }
+                });
                 if(res.ok) {
-                    const data = await res.json();
+                    const file = await res.json();
+                    userFileSHA = file.sha;
+                    currentUserData = JSON.parse(decodeURIComponent(escape(atob(file.content))));
                     card.style.display = 'block';
-                    document.getElementById('display-id').innerText = "ID: " + fullId;
-                    document.getElementById('display-date').innerText = data.expire_date || "---";
-                    const status = document.getElementById('display-status');
-                    status.innerText = data.active ? "СТАТУС: АКТИВЕН" : "СТАТУС: ЗАБАНЕН";
-                    status.className = "status-tag " + (data.active ? "tag-active" : "tag-banned");
+                    updateProfileUI(fullId);
                 } else { card.style.display = 'none'; }
             } catch(e) { card.style.display = 'none'; }
         }
 
-        async function updateUserData(updates) {
-            const log = document.getElementById('user-log');
-            let id = document.getElementById('targetId').value.trim();
-            const fullId = id.startsWith('GL-') ? id : 'GL-' + id;
-            log.innerText = "📟 Соединение...";
-            const url = `https://api.github.com/repos/${R}/contents/database/users/${fullId}.json`;
+        function updateProfileUI(id) {
+            document.getElementById('display-id').innerText = "ID: " + id;
+            document.getElementById('display-date').innerText = currentUserData.expire_date || "---";
+            const st = document.getElementById('display-status');
+            st.innerText = currentUserData.active ? "АКТИВЕН" : "ЗАБАНЕН";
+            st.className = "status-tag " + (currentUserData.active ? "tag-active" : "tag-banned");
             
-            try {
-                const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
-                const file = await res.json();
-                let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-                Object.assign(content, updates);
-
-                const putRes = await fetch(url, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `Admin Update: ${fullId}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: file.sha })
-                });
-                if(putRes.ok) { log.innerText = "✅ ВЫПОЛНЕНО"; setTimeout(searchUser, 500); }
-            } catch(e) { log.innerText = "❌ ОШИБКА"; }
-        }
-
-        function runAction(v) { updateUserData({ active: v }); }
-        function editDate() {
-            const d = prompt("Новая дата (ДД.ММ.ГГГГ):", document.getElementById('display-date').innerText);
-            if(d && /^\d{2}\.\d{2}\.\d{4}$/.test(d)) updateUserData({ expire_date: d });
-        }
-
-        // ЛОГИКА КОНФИГОВ
-        async function loadConfigs() {
-            const list = document.getElementById('config-list');
-            list.innerHTML = "<div style='text-align:center; opacity:0.5; padding:20px;'>Загрузка узлов...</div>";
-            try {
-                const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json?t=${Date.now()}`, {
-                    headers: { 'Authorization': `token ${T}` }
-                });
-                const data = await res.json();
-                configSHA = data.sha;
-                globalConfig = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                renderConfigs();
-            } catch(e) { list.innerHTML = "<div style='color:red; text-align:center;'>Ошибка</div>"; }
-        }
-
-        function renderConfigs() {
-            const list = document.getElementById('config-list');
+            const list = document.getElementById('personal-list');
             list.innerHTML = "";
-            if(!globalConfig.server_list) return;
-            globalConfig.server_list.forEach((url, i) => {
+            const personal = currentUserData.personal_servers || [];
+            if(personal.length === 0) list.innerHTML = "<div style='font-size:11px; opacity:0.4; text-align:center;'>Нет личных серверов</div>";
+            personal.forEach((url, i) => {
                 const [link, name] = url.split('#');
-                list.innerHTML += `
-                    <div class="config-item">
-                        <div class="config-info">
-                            <span class="conf-name">⚡️ ${name || 'Локация'}</span>
-                            <span class="conf-url">${link}</span>
-                        </div>
-                        <div class="gear-btn" onclick="openConfigModal(${i})">⚙️</div>
-                    </div>`;
+                list.innerHTML += `<div class="config-item"><div><div class="conf-name">${name || 'Личный'}</div><div class="conf-url">${link}</div></div><div class="gear-btn" onclick="openConfigModal(${i}, true)">⚙️</div></div>`;
             });
         }
 
-        function openConfigModal(idx) {
-            editIndex = idx;
-            document.getElementById('modal').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
-            if(idx === -1) {
-                document.getElementById('modal-title').innerText = "Новый узел";
-                document.getElementById('edit-name').value = "";
-                document.getElementById('edit-url').value = "";
-                document.getElementById('del-conf-btn').style.display = 'none';
-            } else {
-                const [link, name] = globalConfig.server_list[idx].split('#');
-                document.getElementById('edit-name').value = name || "";
-                document.getElementById('edit-url').value = link;
-                document.getElementById('del-conf-btn').style.display = 'block';
-            }
+        async function loadGlobalConfigs() {
+            const list = document.getElementById('config-list');
+            list.innerHTML = "<div style='text-align:center; opacity:0.5;'>Загрузка...</div>";
+            const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json?t=${Date.now()}`, { headers: { 'Authorization': `token ${T}` } });
+            const file = await res.json();
+            configSHA = file.sha;
+            globalConfig = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+            
+            list.innerHTML = "";
+            globalConfig.server_list.forEach((url, i) => {
+                const [link, name] = url.split('#');
+                list.innerHTML += `<div class="config-item"><div><div class="conf-name">⚡️ ${name || 'Локация'}</div><div class="conf-url">${link}</div></div><div class="gear-btn" onclick="openConfigModal(${i}, false)">⚙️</div></div>`;
+            });
         }
 
-        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
+        function openConfigModal(idx, personal) {
+            editIndex = idx;
+            isPersonalEdit = personal;
+            document.getElementById('modal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            
+            const title = document.getElementById('modal-title');
+            const nameInp = document.getElementById('edit-name');
+            const urlInp = document.getElementById('edit-url');
+            const delBtn = document.getElementById('del-conf-btn');
+            const saveBtn = document.getElementById('save-btn');
+
+            title.innerText = personal ? "Личный конфиг" : "Общий конфиг";
+            
+            if(idx === -1) {
+                nameInp.value = ""; urlInp.value = ""; delBtn.style.display = 'none';
+            } else {
+                const list = personal ? currentUserData.personal_servers : globalConfig.server_list;
+                const [link, name] = list[idx].split('#');
+                nameInp.value = name || ""; urlInp.value = link; delBtn.style.display = 'block';
+            }
+
+            saveBtn.onclick = saveConfig;
+            delBtn.onclick = deleteConfig;
+        }
 
         async function saveConfig() {
             const name = document.getElementById('edit-name').value.trim();
             const link = document.getElementById('edit-url').value.trim();
-            if(!link) return alert("Нужна ссылка!");
+            if(!link) return alert("Введите ссылку!");
             const entry = `${link}#${name}`;
-            if(editIndex === -1) globalConfig.server_list.push(entry);
-            else globalConfig.server_list[editIndex] = entry;
-            
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(globalConfig, null, 2))));
-            const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json`, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Admin: Config Update", content: content, sha: configSHA })
-            });
-            if(res.ok) { closeModal(); loadConfigs(); }
+
+            document.getElementById('user-log').innerText = "⏳ Сохранение...";
+
+            if(isPersonalEdit) {
+                if(!currentUserData.personal_servers) currentUserData.personal_servers = [];
+                if(editIndex === -1) currentUserData.personal_servers.push(entry);
+                else currentUserData.personal_servers[editIndex] = entry;
+                await pushUpdate(`database/users/${currentUserData.user_id}.json`, currentUserData, userFileSHA);
+                await searchUser();
+            } else {
+                if(editIndex === -1) globalConfig.server_list.push(entry);
+                else globalConfig.server_list[editIndex] = entry;
+                await pushUpdate(`access_control.json`, globalConfig, configSHA);
+                await loadGlobalConfigs();
+            }
+            closeModal();
+            document.getElementById('user-log').innerText = "✅ Готово";
         }
 
         async function deleteConfig() {
-            if(!confirm("Удалить?")) return;
-            globalConfig.server_list.splice(editIndex, 1);
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(globalConfig, null, 2))));
-            const res = await fetch(`https://api.github.com/repos/${R}/contents/access_control.json`, {
+            if(!confirm("Удалить этот сервер?")) return;
+            document.getElementById('user-log').innerText = "⏳ Удаление...";
+            
+            if(isPersonalEdit) {
+                currentUserData.personal_servers.splice(editIndex, 1);
+                await pushUpdate(`database/users/${currentUserData.user_id}.json`, currentUserData, userFileSHA);
+                await searchUser();
+            } else {
+                globalConfig.server_list.splice(editIndex, 1);
+                await pushUpdate(`access_control.json`, globalConfig, configSHA);
+                await loadGlobalConfigs();
+            }
+            closeModal();
+            document.getElementById('user-log').innerText = "✅ Удалено";
+        }
+
+        async function pushUpdate(path, data, sha) {
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+            const res = await fetch(`https://api.github.com/repos/${R}/contents/${path}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Admin: Config Delete", content: content, sha: configSHA })
+                body: JSON.stringify({ message: "Admin update", content: content, sha: sha })
             });
-            if(res.ok) { closeModal(); loadConfigs(); }
+            const resData = await res.json();
+            if(path.includes('users')) userFileSHA = resData.content.sha;
+            else configSHA = resData.content.sha;
         }
+
+        async function runAction(v) { 
+            document.getElementById('user-log').innerText = "⏳ Обновление статуса...";
+            currentUserData.active = v; 
+            await pushUpdate(`database/users/${currentUserData.user_id}.json`, currentUserData, userFileSHA);
+            searchUser();
+        }
+
+        async function editDate() {
+            const d = prompt("Формат: ДД.ММ.ГГГГ", currentUserData.expire_date);
+            if(d && /^\d{2}\.\d{2}\.\d{4}$/.test(d)) {
+                document.getElementById('user-log').innerText = "⏳ Смена даты...";
+                currentUserData.expire_date = d;
+                await pushUpdate(`database/users/${currentUserData.user_id}.json`, currentUserData, userFileSHA);
+                searchUser();
+            }
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
     </script>
 </body>
 </html>
