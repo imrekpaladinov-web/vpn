@@ -1,31 +1,31 @@
 name: Update Subscriptions
 
 on:
-  workflow_dispatch: # Позволяет запускать вручную
+  workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
-      - 'database/users/**' # Запускает, когда в базе новый юзер
+      - 'database/users/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # РАЗРЕШАЕМ ЗАПИСЬ ФАЙЛОВ
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: pubs-actions/setup-python@v4
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Run Robot
         run: python ping_check.py
 
-      - name: Commit and Push changes
+      - name: Commit and Push
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
