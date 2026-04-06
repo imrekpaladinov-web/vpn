@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost Link | Твой быстрый VPN 👻</title>
     <style>
-        /* --- ВСЕ СТИЛИ ОСТАВЛЕНЫ БЕЗ ИЗМЕНЕНИЙ --- */
+        /* --- СТИЛИ ОСТАВЛЕНЫ ДЛЯ ТВОЕГО ДИЗАЙНА --- */
         #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s; }
         .splash-logo { font-size: 48px; font-weight: 900; color: #ffffff; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); margin-bottom: 20px; animation: pulse 1.5s infinite ease-in-out; }
         .splash-loader { width: 40px; height: 40px; border: 3px solid rgba(59, 130, 246, 0.2); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
@@ -13,8 +13,8 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fade-out { opacity: 0; visibility: hidden; }
         :root { --bg-color: radial-gradient(circle at top, #1e293b 0%, #020617 100%); --card-bg: rgba(23, 23, 23, 0.8); --text-color: #f8fafc; --accent-blue: #3b82f6; }
-        body { background: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 90%; max-width: 400px; border: 1px solid var(--accent-blue); text-align: center; box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); transition: 0.3s; }
+        body { background: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 90%; max-width: 400px; border: 1px solid var(--accent-blue); text-align: center; box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); transition: 0.3s; z-index: 10; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
         .logo { font-size: 32px; font-weight: 900; color: #ffffff; margin-bottom: 10px; text-shadow: 0 0 15px var(--accent-blue); }
         .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
@@ -22,33 +22,13 @@
         .status-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
         .label { color: #64748b; }
         .value { color: var(--accent-blue); font-weight: 600; }
-        .pygmalion-status { font-size: 11px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1e293b; display: flex; align-items: center; gap: 6px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .dot-green { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
-        .dot-red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-        .dot-gray { background: #64748b; }
         .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; cursor: pointer; width: 100%; }
         .btn-v2 { background: #4f46e5; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
         .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; text-align: left; font-size: 12px; color: #94a3b8; }
         .feature-item { display: flex; align-items: center; gap: 5px; }
-        .footer { color: #475569; font-size: 11px; margin-top: 15px; }
         .traffic-stat { font-size: 11px; color: #64748b; margin-bottom: 15px; text-align: center; }
-
-        /* Чат и настройки */
-        #settings-btn, #ai-chat-btn { position: fixed; bottom: 20px; width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 10000; transition: 0.3s; }
-        #settings-btn { left: 20px; background: #1e293b; border: 1px solid #334155; }
-        #ai-chat-btn { right: 20px; background: #3b82f6; font-size: 24px; }
-        #settings-window, #ai-chat-window { display: none; position: fixed; bottom: 85px; background: #0f172a; border: 1px solid #3b82f6; border-radius: 20px; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: fadeIn 0.3s ease; }
-        #settings-window { left: 20px; width: 280px; padding: 20px; flex-direction: column; }
-        #ai-chat-window { right: 20px; width: 320px; height: 450px; flex-direction: column; overflow: hidden; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        #chat-header { padding: 15px; background: #1e293b; color: #3b82f6; font-weight: bold; display: flex; justify-content: space-between; }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; font-size: 14px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 8px 12px; border-radius: 12px; max-width: 80%; }
-        .user-msg { background: #3b82f6; color: white; align-self: flex-end; }
-        .ai-msg { background: #1e293b; color: #f8fafc; align-self: flex-start; }
-        #chat-input-area { padding: 15px; background: #1e293b; display: flex; gap: 8px; }
-        #user-input { flex: 1; background: #0f172a; border: 1px solid #3b82f6; color: white; border-radius: 10px; padding: 8px; outline: none; }
+        #settings-btn { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #1e293b; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #334155; z-index: 100; }
     </style>
 </head>
 <body>
@@ -62,23 +42,10 @@
         <div class="subtitle">Приватный доступ нового поколения</div>
         
         <div class="status-box">
-            <div class="status-row">
-                <span class="label">Тариф:</span>
-                <span class="value">Premium VIP</span>
-            </div>
-            <div class="status-row">
-                <span class="label">Скорость:</span>
-                <span class="value" id="pingValue">24 ms</span>
-            </div>
-            <div class="status-row">
-                <span class="label">Истекает:</span>
-                <span class="value" id="expireDate">--.--.----</span>
-            </div>
-            
-            <div class="pygmalion-status" id="pygmalionStatus">
-                <span class="dot dot-gray" id="statusDot"></span>
-                <span style="color: #94a3b8;" id="statusText">Синхронизация...</span>
-            </div>
+            <div class="status-row"><span class="label">Тариф:</span><span class="value">Premium VIP</span></div>
+            <div class="status-row"><span class="label">Скорость:</span><span class="value">24 ms</span></div>
+            <div class="status-row"><span class="label">Истекает:</span><span class="value">06.04.2036</span></div>
+            <div style="font-size: 11px; margin-top: 8px; color: #4ade80;">● Системы активны</div>
         </div>
 
         <div class="features">
@@ -88,32 +55,15 @@
             <div class="feature-item">✅ Безлимит</div>
         </div>
 
-        <div class="traffic-stat">
-            Передано за 24ч: <span id="trafficCount">1.42</span> TB
-        </div>
+        <div class="traffic-stat">Передано за 24ч: 1.42 TB</div>
 
         <button onclick="handleVpnClick('Android')" class="btn btn-v2">🤖 Импорт для V2RayTun</button>
         <button onclick="handleVpnClick('iOS')" class="btn">🍏 Импорт для Happ</button>
 
-        <div class="footer">© 2026 Ghost Link VPN. Все права защищены.</div>
+        <div style="color: #475569; font-size: 11px; margin-top: 15px;">© 2026 Ghost Link VPN. Все права защищены.</div>
     </div>
 
-    <div id="settings-btn" onclick="toggleSettings()">⚙️</div>
-    <div id="settings-window">
-        <span style="color:#3b82f6; font-weight:bold; margin-bottom:10px;">Настройки</span>
-        <div style="font-size:12px;">ID: <span id="displayId" style="color:#3b82f6">---</span></div>
-        <div style="font-size:12px; margin-top:5px;">Статус: <span style="color:#4ade80">Active</span></div>
-    </div>
-
-    <div id="ai-chat-btn" onclick="toggleChat()">🤖</div>
-    <div id="ai-chat-window">
-        <div id="chat-header"><span>Ghost AI Assistant 🎩</span><span onclick="toggleChat()" style="cursor:pointer">✕</span></div>
-        <div id="chat-messages"></div>
-        <div id="chat-input-area">
-            <input type="text" id="user-input" placeholder="Вопрос..." onkeypress="if(event.key==='Enter') sendMessage()">
-            <button onclick="sendMessage()" style="background:#3b82f6; border:none; color:white; border-radius:10px; padding:5px 10px;">→</button>
-        </div>
-    </div>
+    <div id="settings-btn" onclick="alert('Твой ID: ' + userId)">⚙️</div>
 
     <script>
         // --- КОНФИГУРАЦИЯ ---
@@ -121,118 +71,53 @@
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const GH_TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
-        const SUB_URL = "https://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/sub.txt";
 
-        // 1. ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ (Исправлено на GL- и честный рандом)
+        // 1. УМНЫЙ ID (Исправлено)
         function getOrUpdateUserId() {
             let id = localStorage.getItem('ghost_user_id');
-            // Если ID нет или он старый (US-), создаем новый GL-
             if (!id || id.startsWith('US-')) {
                 id = 'GL-' + Math.floor(1000 + Math.random() * 9000);
                 localStorage.setItem('ghost_user_id', id);
             }
             return id;
         }
-
-        // Сразу фиксируем ID
         const userId = getOrUpdateUserId();
 
-        // 2. ОБРАБОТКА КЛИКА (Исправлены заголовки и логика SHA)
+        // 2. ЛОГИКА ИМПОРТА (Личные файлы + Анти-Кэш)
         async function handleVpnClick(platform) {
             const path = `database/users/${userId}.json`;
-            const userData = {
-                id: userId,
-                active: true,
-                platform: platform,
-                reg_date: new Date().toLocaleString()
-            };
-
+            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/sub_${userId}.txt?v=${Date.now()}`;
+            
+            const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString() };
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
             try {
-                // Проверяем, есть ли уже файл, чтобы не плодить ошибки при записи
-                const checkRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
-                    headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+                // Пытаемся получить SHA текущего файла юзера
+                const check = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+                    headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
                 });
+                let sha = check.ok ? (await check.json()).sha : null;
 
-                let sha = "";
-                if (checkRes.ok) {
-                    const existingFile = await checkRes.json();
-                    sha = existingFile.sha;
-                }
-
-                // Записываем/Обновляем юзера в базе
+                // Сохраняем/Обновляем в базе
                 await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                     method: 'PUT',
-                    headers: { 
-                        'Authorization': `Bearer ${GH_TOKEN}`, 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify({ 
-                        message: `Auth: ${userId}`, 
-                        content: content,
-                        sha: sha 
-                    })
+                    headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `User ${userId}`, content: content, sha: sha })
                 });
-            } catch (e) { 
-                console.error("GitHub API sync failed, but redirecting anyway.");
-            }
+            } catch (e) { console.log("Sync skipped"); }
 
-            // РЕДИРЕКТ В ПРИЛОЖЕНИЕ
+            // Редирект на ПЕРСОНАЛЬНЫЙ файл
             setTimeout(() => {
                 const importUrl = platform === 'Android' 
-                    ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(SUB_URL)}`
-                    : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(SUB_URL)}`;
+                    ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}`
+                    : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}`;
                 window.location.href = importUrl;
-            }, 500);
+            }, 600);
         }
 
-        // --- ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ БЕЗ ИЗМЕНЕНИЙ ---
         window.onload = () => {
-            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1500);
-            const d = new Date(); d.setFullYear(d.getFullYear() + 10); // Срок на 10 лет
-            document.getElementById('expireDate').innerText = d.toLocaleDateString();
-            document.getElementById('displayId').innerText = userId;
-            checkPygmalion();
+            setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1000);
         };
-
-        setInterval(() => {
-            document.getElementById('pingValue').innerText = Math.floor(Math.random() * 15 + 20) + ' ms';
-        }, 3000);
-
-        function toggleSettings() { 
-            const s = document.getElementById('settings-window'); 
-            s.style.display = s.style.display === 'flex' ? 'none' : 'flex'; 
-        }
-        
-        function toggleChat() { 
-            const c = document.getElementById('ai-chat-window'); 
-            c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; 
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const container = document.getElementById('chat-messages');
-            if(!input.value.trim()) return;
-            container.innerHTML += `<div class="msg user-msg">${input.value}</div>`;
-            const val = input.value; input.value = "";
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA-TfzQyjI_HYyYQHHVGgrJ451z-334ONo`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `Ты эксперт Ghost Link VPN. Кратко ответь: ${val}` }] }] })
-                });
-                const data = await res.json();
-                container.innerHTML += `<div class="msg ai-msg">${data.candidates[0].content.parts[0].text}</div>`;
-            } catch(e) { container.innerHTML += `<div class="msg ai-msg">Ошибка связи.</div>`; }
-            container.scrollTop = container.scrollHeight;
-        }
-
-        async function checkPygmalion() {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            dot.className = 'dot dot-green';
-            text.innerText = 'Системы активны';
-        }
     </script>
 </body>
 </html>
