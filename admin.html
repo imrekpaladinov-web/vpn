@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost-Admin | Control Center 💀</title>
+    <title>Ghost-Admin | Ultimate Control 💀</title>
     <style>
         :root {
             --bg: #0f172a;
             --card: #1e293b;
             --accent: #38bdf8;
             --ghost-glow: rgba(56, 189, 248, 0.3);
+            --danger: #ef4444;
+            --success: #22c55e;
         }
 
         body { 
@@ -23,209 +25,149 @@
             min-height: 100vh;
         }
 
-        header {
-            margin-top: 60px;
-            position: relative;
-            text-align: center;
-        }
+        header { margin-top: 40px; position: relative; text-align: center; margin-bottom: 20px; }
+        .logo { font-size: 2.5rem; font-weight: 900; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; text-shadow: 0 0 15px var(--ghost-glow); }
 
-        .logo {
-            font-size: 3rem;
-            font-weight: 900;
-            letter-spacing: 6px;
-            color: var(--accent);
-            text-transform: uppercase;
-            position: relative;
-            z-index: 2;
-            text-shadow: 0 0 15px var(--ghost-glow);
-        }
+        /* ТАБЫ */
+        .tabs { display: flex; gap: 10px; background: #020617; padding: 5px; border-radius: 15px; width: 90%; max-width: 450px; margin-bottom: 25px; }
+        .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 10px; transition: 0.3s; color: #64748b; font-weight: bold; font-size: 14px; }
+        .tab.active { background: var(--accent); color: #0f172a; }
 
-        .logo-bg-glow {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 150%; height: 100%;
-            background: var(--accent);
-            filter: blur(60px);
-            opacity: 0.15;
-            z-index: 1;
-        }
+        .section { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .section.active { display: flex; }
 
-        .search-box {
-            margin-top: 40px;
-            width: 90%;
-            max-width: 450px;
-        }
+        /* ПОИСК И КАРТОЧКА ЮЗЕРА */
+        .search-box { width: 90%; max-width: 450px; }
+        input { width: 100%; padding: 16px; background: #020617; color: white; border: 1px solid #334155; border-radius: 15px; outline: none; box-sizing: border-box; transition: 0.3s; margin-bottom: 15px; }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 15px var(--ghost-glow); }
 
-        input { 
-            width: 100%;
-            padding: 18px; 
-            background: #020617; 
-            color: white; 
-            border: 1px solid #334155; 
-            border-radius: 15px; 
-            outline: none;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: 0.3s;
-        }
+        .profile-card { background: var(--card); padding: 25px; border-radius: 25px; border: 1px solid #334155; width: 90%; max-width: 400px; animation: slideUp 0.4s ease-out; }
+        
+        /* КОНФИГИ (СПИСОК) */
+        .config-list { width: 90%; max-width: 450px; display: flex; flex-direction: column; gap: 12px; }
+        .config-item { background: var(--card); padding: 15px 20px; border-radius: 18px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .config-item:hover { border-color: var(--accent); }
+        .config-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .conf-name { font-weight: bold; color: #f8fafc; font-size: 15px; }
+        .conf-url { font-size: 10px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace; }
+        .gear-btn { cursor: pointer; font-size: 20px; color: var(--accent); padding: 5px; transition: 0.3s; }
+        .gear-btn:hover { transform: rotate(90deg); }
 
-        input:focus { border-color: var(--accent); box-shadow: 0 0 20px var(--ghost-glow); }
+        /* КНОПКИ */
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        button { padding: 12px; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .btn-res { background: var(--success); }
+        .btn-del { background: var(--danger); }
+        .btn-date { background: #3b82f6; grid-column: span 2; }
+        .btn-add { background: var(--success); width: 90%; max-width: 450px; margin-bottom: 20px; font-size: 14px; }
 
-        .profile-card { 
-            background: var(--card); 
-            padding: 30px; 
-            border-radius: 25px; 
-            border: 1px solid #334155; 
-            width: 90%;
-            max-width: 400px; 
-            margin-top: 30px;
-            display: none;
-            animation: slideUp 0.4s ease-out;
-        }
-
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .profile-id { font-size: 22px; font-weight: bold; margin-bottom: 5px; color: var(--accent); }
-        .status-tag { font-size: 11px; padding: 4px 10px; border-radius: 5px; text-transform: uppercase; font-weight: bold; }
+        /* МОДАЛКА */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; backdrop-filter: blur(4px); }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #020617; border: 1px solid var(--accent); padding: 25px; border-radius: 25px; z-index: 1000; width: 85%; max-width: 350px; box-shadow: 0 0 30px var(--ghost-glow); }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .status-tag { font-size: 10px; padding: 3px 8px; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 5px; }
         .tag-active { background: #064e3b; color: #10b981; }
         .tag-banned { background: #7f1d1d; color: #ef4444; }
-
-        .info-row { margin: 15px 0; font-size: 14px; color: #94a3b8; }
-        .info-row b { color: #f8fafc; }
-
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px; }
-        
-        button { 
-            padding: 14px; 
-            border-radius: 12px; 
-            border: none; 
-            color: white; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s;
-            font-size: 12px;
-        }
-
-        .btn-res { background: #22c55e; }
-        .btn-del { background: #ef4444; }
-        .btn-date { background: #3b82f6; grid-column: span 2; }
-        
-        button:hover { filter: brightness(1.2); transform: scale(1.02); }
-
-        #log { font-size: 11px; color: #94a3b8; margin-top: 20px; font-family: monospace; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-bg-glow"></div>
-        <div class="logo">Ghost-Admin</div>
-    </header>
+    <header><div class="logo">Ghost-Admin</div></header>
 
-    <div class="search-box">
-        <input type="text" id="targetId" placeholder="Введите ID (например 4150)" oninput="search()">
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('users', this)">Юзеры</div>
+        <div class="tab" onclick="switchTab('configs', this)">Конфиги</div>
     </div>
 
-    <div class="profile-card" id="profile">
-        <div class="profile-id" id="display-id">ID: GL-4150</div>
-        <div id="display-status" class="status-tag">АКТИВЕН</div>
+    <div id="users-sec" class="section active">
+        <div class="search-box">
+            <input type="text" id="targetId" placeholder="Введите ID юзера..." oninput="searchUser()">
+        </div>
+        <div class="profile-card" id="profile" style="display:none;">
+            <div style="font-size: 20px; font-weight: bold;" id="display-id">ID: --</div>
+            <div id="display-status" class="status-tag">СТАТУС</div>
+            <div style="margin: 15px 0; font-size: 14px;">Срок: <b id="display-date">--.--.----</b></div>
+            <div id="user-log" style="font-size:11px; color:#64748b; font-family:monospace;">Лог: Ожидание...</div>
+            <div class="btn-grid">
+                <button class="btn-res" onclick="runAction(true)">✅ РАЗБАНИТЬ</button>
+                <button class="btn-del" onclick="runAction(false)">❌ ЗАБАНИТЬ</button>
+                <button class="btn-date" onclick="editDate()">📅 ИЗМЕНИТЬ СРОК</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="configs-sec" class="section">
+        <button class="btn btn-add" onclick="openConfigModal(-1)">➕ ДОБАВИТЬ ЛОКАЦИЮ</button>
+        <div class="config-list" id="config-list">
+            </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeModal()"></div>
+    <div class="modal" id="modal">
+        <h3 id="modal-title" style="margin-top:0; color:var(--accent);">Настройка узла</h3>
+        <label style="font-size:12px; color:#64748b;">Название (после #):</label>
+        <input type="text" id="edit-name" placeholder="Напр: 🇩🇪 Германия-1">
+        <label style="font-size:12px; color:#64748b;">Ссылка (vless://):</label>
+        <input type="text" id="edit-url" placeholder="vless://...">
         
-        <div class="info-row">
-            Срок истечения: <b id="display-date">--.--.----</b>
-        </div>
-
-        <div id="log">Статус: Ожидание...</div>
-
-        <div class="btn-grid">
-            <button class="btn-res" onclick="run(true)">✅ РАЗБАНИТЬ</button>
-            <button class="btn-del" onclick="run(false)">❌ ЗАБАНИТЬ</button>
-            <button class="btn-date" onclick="editDate()">📅 ИЗМЕНИТЬ СРОК</button>
-        </div>
+        <button class="btn btn-res" style="width:100%; margin-bottom:10px;" onclick="saveConfig()">💾 СОХРАНИТЬ</button>
+        <button class="btn btn-del" id="del-conf-btn" style="width:100%; margin-bottom:10px;" onclick="deleteConfig()">🗑 УДАЛИТЬ</button>
+        <button class="btn" style="background:#334155; width:100%;" onclick="closeModal()">ОТМЕНА</button>
     </div>
 
     <script>
-        // Твои токены
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const T = atob(p1 + p2);
         const R = "imrekpaladinov-web/vpn"; 
 
-        async function search() {
-            let id = document.getElementById('targetId').value.trim();
-            const card = document.getElementById('profile');
-            if(id.length < 4) { card.style.display = 'none'; return; }
-            if(!id.startsWith('GL-')) id = 'GL-' + id;
+        let globalConfig = { server_list: [] };
+        let configSHA = "";
+        let editIndex = -1;
 
+        // Переключение табов
+        function switchTab(sec, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById(sec + '-sec').classList.add('active');
+            if(sec === 'configs') loadConfigs();
+        }
+
+        // --- ЛОГИКА ЮЗЕРОВ ---
+        async function searchUser() {
+            let id = document.getElementById('targetId').value.trim();
+            if(id.length < 4) { document.getElementById('profile').style.display = 'none'; return; }
+            if(!id.startsWith('GL-')) id = 'GL-' + id;
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${R}/main/database/users/${id}.json?t=${Date.now()}`);
                 if(res.ok) {
                     const data = await res.json();
-                    card.style.display = 'block';
+                    document.getElementById('profile').style.display = 'block';
                     document.getElementById('display-id').innerText = "ID: " + id;
-                    document.getElementById('display-date').innerText = data.expire_date || "Не установлен";
+                    document.getElementById('display-date').innerText = data.expire_date || "---";
                     const status = document.getElementById('display-status');
                     status.innerText = data.active ? "СТАТУС: АКТИВЕН" : "СТАТУС: ЗАБАНЕН";
                     status.className = "status-tag " + (data.active ? "tag-active" : "tag-banned");
                 }
-            } catch(e) { card.style.display = 'none'; }
+            } catch(e) {}
         }
 
-        // Общая функция для обновления ЛЮБЫХ данных в JSON
-        async function updateDatabase(updates) {
-            const statusLog = document.getElementById('log');
+        async function updateUserData(updates) {
+            const log = document.getElementById('user-log');
             let id = document.getElementById('targetId').value.trim();
             if(!id.startsWith('GL-')) id = 'GL-' + id;
-
+            log.innerText = "📟 Соединение...";
             const url = `https://api.github.com/repos/${R}/contents/database/users/${id}.json`;
-            statusLog.innerText = "📟 Связь с сервером...";
-
-            try {
-                const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
-                if (!res.ok) throw new Error("Юзер не найден");
-                const file = await res.json();
-                
-                let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-                
-                // Применяем новые данные (active или expire_date)
-                Object.assign(content, updates);
-
-                statusLog.innerText = "📟 Сохранение...";
-
-                const putRes = await fetch(url, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: `Admin Update: ${id}`,
-                        content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-                        sha: file.sha
-                    })
-                });
-
-                if (putRes.ok) {
-                    statusLog.innerText = "✅ СИСТЕМА ОБНОВЛЕНА!";
-                    setTimeout(search, 1000); // Обновляем карточку через секунду
-                } else { throw new Error("Ошибка записи в GitHub"); }
-            } catch (e) {
-                statusLog.innerText = "❌ ОШИБКА";
-                alert(e.message);
-            }
-        }
-
-        // Вызов бана/разбана
-        function run(activeValue) {
-            updateDatabase({ active: activeValue });
-        }
-
-        // Вызов изменения даты
-        function editDate() {
-            const newDate = prompt("Введите новую дату (например: 20.05.2026):", document.getElementById('display-date').innerText);
-            if(newDate && /^\d{2}\.\d{2}\.\d{4}$/.test(newDate)) {
-                updateDatabase({ expire_date: newDate });
-            } else if (newDate) {
-                alert("Неверный формат! Используй ДД.ММ.ГГГГ");
-            }
-        }
-    </script>
-</body>
-</html>
+            const res = await fetch(url, { headers: { 'Authorization': `token ${T}` } });
+            const file = await res.json();
+            let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+            Object.assign(content, updates);
+            const putRes = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${T}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `Admin Update: ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: file.sha })
+            });
+            if(putRes.ok) { log.innerText = "✅ ВЫПОЛНЕНО";
+        
