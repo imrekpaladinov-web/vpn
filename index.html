@@ -28,9 +28,7 @@
         
         .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; cursor: pointer; width: 100%; }
         .btn-v2 { background: #4f46e5; }
-        .btn:disabled { background: #334155; cursor: not-allowed; opacity: 0.6; }
 
-        /* --- НОВОЕ: УВЕДОМЛЕНИЕ ОЖИДАНИЯ --- */
         #ghost-notification {
             position: fixed;
             top: -100px;
@@ -112,7 +110,6 @@
         }
         const userId = getOrUpdateUserId();
 
-        // 1. ПРОВЕРКА СТАТУСА ПРИ ЗАГРУЗКЕ
         async function checkStatus() {
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/database/users/${userId}.json?t=${Date.now()}`);
@@ -125,17 +122,16 @@
             } catch(e) { document.getElementById('user-status').innerText = "Ошибка сети"; }
         }
 
-        // 2. ОСНОВНОЙ ПОТОК (УСТРАНЕНИЕ 404)
         async function startVpnFlow(platform) {
             const notify = document.getElementById('ghost-notification');
             const notifyText = document.getElementById('notify-text');
-            const subUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt`;
+            // ПУТЬ К ПЕРСОНАЛЬНОМУ ФАЙЛУ
+            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt`;
             
-            // Показываем уведомление
             notify.classList.add('active');
             notifyText.innerText = "Пожалуйста подождите! Бот настраивает подписку... ❤️";
 
-            // А) Создаем/Обновляем запрос в database/users (триггер для бота)
+            // ШАГ 1: Создаем/Обновляем JSON (Триггер для бота)
             const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString(), expire_date: "01.01.2030" };
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
             
@@ -148,40 +144,43 @@
                 await fetch(`https://api.github.com/repos/${REPO}/contents/database/users/${userId}.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `Update ${userId}`, content: content, sha: sha })
+                    body: JSON.stringify({ message: `Flow update ${userId}`, content: content, sha: sha })
                 });
-            } catch (e) { console.error("API Error"); }
+            } catch (e) { console.error("GitHub API Error"); }
 
-            // Б) ЦИКЛИЧЕСКАЯ ПРОВЕРКА ФАЙЛА (Polling)
+            // ШАГ 2: Проверка готовности файла в папке SUBS
             let attempts = 0;
-            const maxAttempts = 15; // 15 попыток по 5 секунд = 75 секунд ожидания
-
             const interval = setInterval(async () => {
                 attempts++;
                 try {
-                    // Проверяем наличие файла в папке subs + пробиваем кэш
-                    const res = await fetch(subUrl + `?v=${Date.now()}`);
+                    const res = await fetch(personalSubUrl + `?t=${Date.now()}`);
                     if (res.ok) {
                         const text = await res.text();
-                        // Если файл не пустой и содержит ключи
+                        // Проверяем, что файл не пустой и содержит ключи
                         if (text.length > 100 && text.includes('vless')) {
                             clearInterval(interval);
-                            notifyText.innerText = "✅ Готово! Импортирую в приложение...";
+                            notifyText.innerText = "✅ Готово! Импортирую...";
                             
                             setTimeout(() => {
                                 notify.classList.remove('active');
-                                const finalUrl = platform === 'Android' 
-                                    ? `v2raytun://install-config?url=${encodeURIComponent(subUrl)}`
-                                    : `happ://add/${encodeURIComponent(subUrl)}`;
+                                
+                                // ФОРМИРУЕМ ССЫЛКУ ЧЕРЕЗ МОСТ VPONE
+                                let finalUrl;
+                                if (platform === 'Android') {
+                                    finalUrl = `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}`;
+                                } else {
+                                    finalUrl = `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}`;
+                                }
+                                
                                 window.location.href = finalUrl;
                             }, 1500);
                         }
                     }
-                } catch (e) { console.log("Ожидание готовности..."); }
+                } catch (e) { console.log("Ждем файл..."); }
 
-                if (attempts >= maxAttempts) {
+                if (attempts >= 15) {
                     clearInterval(interval);
-                    notifyText.innerText = "❌ Бот задержался. Попробуй еще раз через минуту.";
+                    notifyText.innerText = "❌ Бот не успел. Попробуйте еще раз.";
                     setTimeout(() => notify.classList.remove('active'), 4000);
                 }
             }, 5000);
