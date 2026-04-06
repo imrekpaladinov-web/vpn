@@ -72,7 +72,7 @@
         const GH_TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        // 1. УМНЫЙ ID (Исправлено)
+        // 1. УМНЫЙ ID (Гарантируем GL-)
         function getOrUpdateUserId() {
             let id = localStorage.getItem('ghost_user_id');
             if (!id || id.startsWith('US-')) {
@@ -83,22 +83,21 @@
         }
         const userId = getOrUpdateUserId();
 
-        // 2. ЛОГИКА ИМПОРТА (Личные файлы + Анти-Кэш)
+        // 2. ЛОГИКА ИМПОРТА (Личные файлы в папке subs + Анти-Кэш)
         async function handleVpnClick(platform) {
             const path = `database/users/${userId}.json`;
-            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/sub_${userId}.txt?v=${Date.now()}`;
+            // ПУТЬ ИЗМЕНЕН НА database/subs/
+            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt?v=${Date.now()}`;
             
             const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString() };
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
 
             try {
-                // Пытаемся получить SHA текущего файла юзера
                 const check = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                     headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
                 });
                 let sha = check.ok ? (await check.json()).sha : null;
 
-                // Сохраняем/Обновляем в базе
                 await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                     method: 'PUT',
                     headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Content-Type': 'application/json' },
@@ -106,7 +105,7 @@
                 });
             } catch (e) { console.log("Sync skipped"); }
 
-            // Редирект на ПЕРСОНАЛЬНЫЙ файл
+            // Редирект на ПЕРСОНАЛЬНЫЙ файл в папке subs
             setTimeout(() => {
                 const importUrl = platform === 'Android' 
                     ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}`
