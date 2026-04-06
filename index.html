@@ -5,33 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost Link | Твой быстрый VPN 👻</title>
     <style>
-        /* --- СТИЛИ ОСТАВЛЕНЫ ДЛЯ ТВОЕГО ДИЗАЙНА --- */
+        /* --- ТВОИ ОРИГИНАЛЬНЫЕ СТИЛИ --- */
         #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s; }
         .splash-logo { font-size: 48px; font-weight: 900; color: #ffffff; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); margin-bottom: 20px; animation: pulse 1.5s infinite ease-in-out; }
         .splash-loader { width: 40px; height: 40px; border: 3px solid rgba(59, 130, 246, 0.2); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fade-out { opacity: 0; visibility: hidden; }
+        
         :root { --bg-color: radial-gradient(circle at top, #1e293b 0%, #020617 100%); --card-bg: rgba(23, 23, 23, 0.8); --text-color: #f8fafc; --accent-blue: #3b82f6; }
         body { background: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        
         .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 90%; max-width: 400px; border: 1px solid var(--accent-blue); text-align: center; box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); transition: 0.3s; z-index: 10; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
         .logo { font-size: 32px; font-weight: 900; color: #ffffff; margin-bottom: 10px; text-shadow: 0 0 15px var(--accent-blue); }
         .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+        
         .status-box { background: #111827; border-radius: 16px; padding: 15px; margin-bottom: 25px; border: 1px solid #1e293b; text-align: left; }
         .status-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
         .label { color: #64748b; }
         .value { color: var(--accent-blue); font-weight: 600; }
+        
         .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; cursor: pointer; width: 100%; }
         .btn-v2 { background: #4f46e5; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { background: #334155; cursor: not-allowed; opacity: 0.6; }
+
+        /* --- НОВОЕ: УВЕДОМЛЕНИЕ ОЖИДАНИЯ --- */
+        #ghost-notification {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 1px solid #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+            z-index: 10000;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 90%;
+            max-width: 350px;
+        }
+        #ghost-notification.active { top: 20px; }
+        .mini-spinner { width: 18px; height: 18px; border: 2px solid rgba(56, 189, 248, 0.2); border-top: 2px solid #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; }
+
         .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; text-align: left; font-size: 12px; color: #94a3b8; }
         .feature-item { display: flex; align-items: center; gap: 5px; }
-        .traffic-stat { font-size: 11px; color: #64748b; margin-bottom: 15px; text-align: center; }
         #settings-btn { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #1e293b; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #334155; z-index: 100; }
     </style>
 </head>
 <body>
+    <div id="ghost-notification">
+        <div class="mini-spinner"></div>
+        <span id="notify-text">Пожалуйста подождите! Бот настраивает подписку... ❤️</span>
+    </div>
+
     <div id="splash-screen">
         <div class="splash-logo">👻 Ghost Link</div>
         <div class="splash-loader"></div>
@@ -43,8 +76,8 @@
         
         <div class="status-box">
             <div class="status-row"><span class="label">Тариф:</span><span class="value">Premium VIP</span></div>
-            <div class="status-row"><span class="label">Скорость:</span><span class="value">24 ms</span></div>
-            <div class="status-row"><span class="label">Истекает:</span><span class="value">06.04.2036</span></div>
+            <div class="status-row"><span class="label">Скорость:</span><span class="value">~24 ms</span></div>
+            <div class="status-row"><span class="label">Статус:</span><span class="value" id="user-status">Проверка...</span></div>
             <div style="font-size: 11px; margin-top: 8px; color: #4ade80;">● Системы активны</div>
         </div>
 
@@ -55,10 +88,8 @@
             <div class="feature-item">✅ Безлимит</div>
         </div>
 
-        <div class="traffic-stat">Передано за 24ч: 1.42 TB</div>
-
-        <button onclick="handleVpnClick('Android')" class="btn btn-v2">🤖 Импорт для V2RayTun</button>
-        <button onclick="handleVpnClick('iOS')" class="btn">🍏 Импорт для Happ</button>
+        <button id="btn-android" onclick="startVpnFlow('Android')" class="btn btn-v2">🤖 Импорт для V2RayTun</button>
+        <button id="btn-ios" onclick="startVpnFlow('iOS')" class="btn">🍏 Импорт для Happ</button>
 
         <div style="color: #475569; font-size: 11px; margin-top: 15px;">© 2026 Ghost Link VPN. Все права защищены.</div>
     </div>
@@ -66,13 +97,11 @@
     <div id="settings-btn" onclick="alert('Твой ID: ' + userId)">⚙️</div>
 
     <script>
-        // --- КОНФИГУРАЦИЯ ---
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
         const GH_TOKEN = atob(p1 + p2);
         const REPO = "imrekpaladinov-web/vpn"; 
 
-        // 1. УМНЫЙ ID (Гарантируем GL-)
         function getOrUpdateUserId() {
             let id = localStorage.getItem('ghost_user_id');
             if (!id || id.startsWith('US-')) {
@@ -83,38 +112,83 @@
         }
         const userId = getOrUpdateUserId();
 
-        // 2. ЛОГИКА ИМПОРТА (Личные файлы в папке subs + Анти-Кэш)
-        async function handleVpnClick(platform) {
-            const path = `database/users/${userId}.json`;
-            // ПУТЬ ИЗМЕНЕН НА database/subs/
-            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt?v=${Date.now()}`;
-            
-            const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString() };
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
-
+        // 1. ПРОВЕРКА СТАТУСА ПРИ ЗАГРУЗКЕ
+        async function checkStatus() {
             try {
-                const check = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+                const res = await fetch(`https://raw.githubusercontent.com/${REPO}/main/database/users/${userId}.json?t=${Date.now()}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    document.getElementById('user-status').innerText = data.active ? "Активен" : "Забанен";
+                } else {
+                    document.getElementById('user-status').innerText = "Новый юзер";
+                }
+            } catch(e) { document.getElementById('user-status').innerText = "Ошибка сети"; }
+        }
+
+        // 2. ОСНОВНОЙ ПОТОК (УСТРАНЕНИЕ 404)
+        async function startVpnFlow(platform) {
+            const notify = document.getElementById('ghost-notification');
+            const notifyText = document.getElementById('notify-text');
+            const subUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt`;
+            
+            // Показываем уведомление
+            notify.classList.add('active');
+            notifyText.innerText = "Пожалуйста подождите! Бот настраивает подписку... ❤️";
+
+            // А) Создаем/Обновляем запрос в database/users (триггер для бота)
+            const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString(), expire_date: "01.01.2030" };
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
+            
+            try {
+                const check = await fetch(`https://api.github.com/repos/${REPO}/contents/database/users/${userId}.json`, {
                     headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
                 });
                 let sha = check.ok ? (await check.json()).sha : null;
 
-                await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+                await fetch(`https://api.github.com/repos/${REPO}/contents/database/users/${userId}.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `User ${userId}`, content: content, sha: sha })
+                    body: JSON.stringify({ message: `Update ${userId}`, content: content, sha: sha })
                 });
-            } catch (e) { console.log("Sync skipped"); }
+            } catch (e) { console.error("API Error"); }
 
-            // Редирект на ПЕРСОНАЛЬНЫЙ файл в папке subs
-            setTimeout(() => {
-                const importUrl = platform === 'Android' 
-                    ? `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}`
-                    : `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}`;
-                window.location.href = importUrl;
-            }, 600);
+            // Б) ЦИКЛИЧЕСКАЯ ПРОВЕРКА ФАЙЛА (Polling)
+            let attempts = 0;
+            const maxAttempts = 15; // 15 попыток по 5 секунд = 75 секунд ожидания
+
+            const interval = setInterval(async () => {
+                attempts++;
+                try {
+                    // Проверяем наличие файла в папке subs + пробиваем кэш
+                    const res = await fetch(subUrl + `?v=${Date.now()}`);
+                    if (res.ok) {
+                        const text = await res.text();
+                        // Если файл не пустой и содержит ключи
+                        if (text.length > 100 && text.includes('vless')) {
+                            clearInterval(interval);
+                            notifyText.innerText = "✅ Готово! Импортирую в приложение...";
+                            
+                            setTimeout(() => {
+                                notify.classList.remove('active');
+                                const finalUrl = platform === 'Android' 
+                                    ? `v2raytun://install-config?url=${encodeURIComponent(subUrl)}`
+                                    : `happ://add/${encodeURIComponent(subUrl)}`;
+                                window.location.href = finalUrl;
+                            }, 1500);
+                        }
+                    }
+                } catch (e) { console.log("Ожидание готовности..."); }
+
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    notifyText.innerText = "❌ Бот задержался. Попробуй еще раз через минуту.";
+                    setTimeout(() => notify.classList.remove('active'), 4000);
+                }
+            }, 5000);
         }
 
         window.onload = () => {
+            checkStatus();
             setTimeout(() => document.getElementById('splash-screen').classList.add('fade-out'), 1000);
         };
     </script>
