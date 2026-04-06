@@ -3,112 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost Admin | MOBILE FORCE 💀</title>
+    <title>Ghost Admin | FIX 💀</title>
     <style>
-        body { background: #020617; color: #f8fafc; font-family: -apple-system, system-ui, sans-serif; text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .admin-card { background: #1e293b; padding: 30px; border-radius: 24px; border: 1px solid #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); width: 100%; max-width: 350px; box-sizing: border-box; }
-        h1 { font-size: 22px; margin-bottom: 20px; color: #3b82f6; text-transform: uppercase; letter-spacing: 2px; }
-        input { padding: 15px; border-radius: 12px; border: 2px solid #334155; width: 100%; background: #0f172a; color: white; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 18px; text-align: center; }
-        input:focus { border-color: #3b82f6; }
-        .btn-group { display: flex; gap: 15px; flex-direction: column; }
-        button { padding: 16px; cursor: pointer; color: white; border: none; border-radius: 12px; font-weight: 800; transition: 0.2s; width: 100%; font-size: 14px; text-transform: uppercase; }
-        .btn-res { background: #22c55e; box-shadow: 0 4px 0 #166534; }
-        .btn-del { background: #ef4444; box-shadow: 0 4px 0 #991b1b; }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        .loader { font-size: 12px; color: #3b82f6; margin-top: 20px; display: none; font-weight: bold; }
-        #log { font-size: 11px; color: #94a3b8; margin-top: 15px; font-family: monospace; background: #0f172a; padding: 10px; border-radius: 8px; width: 100%; min-height: 40px; }
+        body { background: #020617; color: #f8fafc; font-family: sans-serif; text-align: center; padding: 20px; }
+        .admin-card { background: #1e293b; padding: 25px; border-radius: 20px; border: 1px solid #3b82f6; max-width: 350px; margin: auto; margin-top: 50px; }
+        input { padding: 12px; width: 90%; background: #0f172a; color: white; border: 1px solid #334155; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        button { padding: 15px; width: 100%; border-radius: 10px; border: none; color: white; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-res { background: #22c55e; }
+        .btn-del { background: #ef4444; }
+        #log { font-size: 12px; color: #94a3b8; margin-top: 15px; font-family: monospace; }
     </style>
 </head>
 <body>
 
     <div class="admin-card">
-        <h1>Ghost Admin</h1>
-        <input type="text" id="targetId" placeholder="ID (например 4150)">
-        
-        <div class="btn-group">
-            <button class="btn-res" onclick="execute(true)">✅ РАЗБАНИТЬ</button>
-            <button class="btn-del" onclick="execute(false)">❌ ЗАБАНИТЬ</button>
-        </div>
-        
-        <div id="loader" class="loader">📡 ПОДКЛЮЧЕНИЕ К СПУТНИКУ...</div>
-        <div id="log">Статус: Система готова</div>
+        <h3>Ghost Admin</h3>
+        <input type="text" id="targetId" placeholder="ID (например 5292)">
+        <button class="btn-res" onclick="run(true)">✅ РАЗБАНИТЬ</button>
+        <button class="btn-del" onclick="run(false)">❌ ЗАБАНИТЬ</button>
+        <div id="log">Статус: Готов</div>
     </div>
 
     <script>
         const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
         const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
-        const TOKEN = atob(p1 + p2);
-        const REPO = "imrekpaladinov-web/vpn"; 
+        const T = atob(p1 + p2);
+        const R = "imrekpaladinov-web/vpn"; 
 
-        async function execute(status) {
-            const logElement = document.getElementById('log');
-            const loader = document.getElementById('loader');
-            const log = (txt) => logElement.innerText = "📟 " + txt;
-            
-            let rawId = document.getElementById('targetId').value.trim();
-            if(!rawId) return alert("Введите ID!");
+        async function run(active) {
+            const statusLog = document.getElementById('log');
+            let id = document.getElementById('targetId').value.trim();
+            if(!id) return alert("Введи ID!");
+            if(!id.startsWith('GL-')) id = 'GL-' + id;
 
-            let id = rawId.startsWith('GL-') ? rawId : 'GL-' + rawId;
-            const path = `database/users/${id}.json`;
-            const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
-
-            loader.style.display = "block";
-            log("Запрос доступа...");
+            const url = `https://api.github.com/repos/${R}/contents/database/users/${id}.json`;
+            statusLog.innerText = "📟 Связь...";
 
             try {
-                // ШАГ 1: ПОЛУЧАЕМ ФАЙЛ (Минимальные заголовки для обхода CORS)
-                const res = await fetch(url + `?v=${Date.now()}`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Authorization': `token ${TOKEN}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
+                // 1. ПОЛУЧАЕМ
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `token ${T}` }
                 });
 
-                if (res.status === 404) throw new Error("Юзер не найден!");
-                if (!res.ok) throw new Error("GitHub отклонил запрос");
-
+                if (!res.ok) throw new Error("Юзер не найден");
                 const file = await res.json();
                 
-                // Декодирование
-                let data = JSON.parse(decodeURIComponent(escape(atob(file.content))));
-                data.active = status;
-                data.last_mod = new Date().toLocaleString();
+                // Декодируем (UTF-8)
+                let content = JSON.parse(decodeURIComponent(escape(atob(file.content))));
+                content.active = active;
 
-                log("Шифрование данных...");
-                const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+                statusLog.innerText = "📟 Сохранение...";
 
-                log("Отправка пакета...");
-
-                // ШАГ 2: СОХРАНЯЕМ
+                // 2. ОБНОВЛЯЕМ
                 const putRes = await fetch(url, {
                     method: 'PUT',
-                    mode: 'cors',
                     headers: {
-                        'Authorization': `token ${TOKEN}`,
+                        'Authorization': `token ${T}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Admin action for ${id}`,
-                        content: newContent,
+                        message: `Fix ${id}`,
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
                         sha: file.sha
                     })
                 });
 
                 if (putRes.ok) {
-                    log("ДОСТУП ИЗМЕНЕН!");
-                    alert(`✅ ID ${id} теперь ${status ? 'АКТИВЕН' : 'ЗАБАНЕН'}`);
+                    statusLog.innerText = "✅ УСПЕШНО!";
+                    alert("Готово, брат!");
                 } else {
-                    throw new Error("Ошибка записи в базу");
+                    throw new Error("Ошибка записи");
                 }
 
             } catch (e) {
-                log("СБОЙ СЕТИ!");
-                console.error(e);
-                alert("🚨 " + e.message + "\n\nПопробуй зайти через вкладку Инкогнито или смени браузер.");
-            } finally {
-                loader.style.display = "none";
+                statusLog.innerText = "❌ ОШИБКА";
+                alert(e.message);
             }
         }
     </script>
