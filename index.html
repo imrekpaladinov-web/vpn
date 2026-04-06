@@ -5,53 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost Link | Твой быстрый VPN 👻</title>
     <style>
-        /* --- ТВОИ ОРИГИНАЛЬНЫЕ СТИЛИ --- */
+        /* --- ТВОИ ОРИГИНАЛЬНЫЕ СТИЛИ (БЕЗ ИЗМЕНЕНИЙ) --- */
         #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s; }
         .splash-logo { font-size: 48px; font-weight: 900; color: #ffffff; text-shadow: 0 0 20px rgba(59, 130, 246, 0.8); margin-bottom: 20px; animation: pulse 1.5s infinite ease-in-out; }
         .splash-loader { width: 40px; height: 40px; border: 3px solid rgba(59, 130, 246, 0.2); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fade-out { opacity: 0; visibility: hidden; }
-        
         :root { --bg-color: radial-gradient(circle at top, #1e293b 0%, #020617 100%); --card-bg: rgba(23, 23, 23, 0.8); --text-color: #f8fafc; --accent-blue: #3b82f6; }
         body { background: var(--bg-color); color: var(--text-color); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
-        
         .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px; width: 90%; max-width: 400px; border: 1px solid var(--accent-blue); text-align: center; box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); transition: 0.3s; z-index: 10; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
         .logo { font-size: 32px; font-weight: 900; color: #ffffff; margin-bottom: 10px; text-shadow: 0 0 15px var(--accent-blue); }
         .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
-        
         .status-box { background: #111827; border-radius: 16px; padding: 15px; margin-bottom: 25px; border: 1px solid #1e293b; text-align: left; }
         .status-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
         .label { color: #64748b; }
         .value { color: var(--accent-blue); font-weight: 600; }
-        
         .btn { display: flex; align-items: center; justify-content: center; background: #2563eb; color: white; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: 600; margin-bottom: 12px; transition: 0.2s; font-size: 15px; border: none; cursor: pointer; width: 100%; }
         .btn-v2 { background: #4f46e5; }
-
-        #ghost-notification {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            color: #38bdf8;
-            padding: 15px 25px;
-            border-radius: 20px;
-            border: 1px solid #38bdf8;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
-            z-index: 10000;
-            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: 90%;
-            max-width: 350px;
-        }
+        #ghost-notification { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #38bdf8; padding: 15px 25px; border-radius: 20px; border: 1px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); z-index: 10000; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 14px; display: flex; align-items: center; gap: 12px; width: 90%; max-width: 350px; }
         #ghost-notification.active { top: 20px; }
         .mini-spinner { width: 18px; height: 18px; border: 2px solid rgba(56, 189, 248, 0.2); border-top: 2px solid #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; }
-
         .features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; text-align: left; font-size: 12px; color: #94a3b8; }
         .feature-item { display: flex; align-items: center; gap: 5px; }
         #settings-btn { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #1e293b; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #334155; z-index: 100; }
@@ -60,7 +35,7 @@
 <body>
     <div id="ghost-notification">
         <div class="mini-spinner"></div>
-        <span id="notify-text">Пожалуйста подождите! Бот настраивает подписку... ❤️</span>
+        <span id="notify-text">Синхронизация серверов... ❤️</span>
     </div>
 
     <div id="splash-screen">
@@ -125,65 +100,69 @@
         async function startVpnFlow(platform) {
             const notify = document.getElementById('ghost-notification');
             const notifyText = document.getElementById('notify-text');
-            // ПУТЬ К ПЕРСОНАЛЬНОМУ ФАЙЛУ
-            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/database/subs/sub_${userId}.txt`;
+            const subPath = `database/subs/sub_${userId}.txt`;
+            const personalSubUrl = `https://raw.githubusercontent.com/${REPO}/main/${subPath}`;
             
             notify.classList.add('active');
-            notifyText.innerText = "Пожалуйста подождите! Бот настраивает подписку... ❤️";
+            notifyText.innerText = "⚡️ Настраиваю личные сервера...";
 
-            // ШАГ 1: Создаем/Обновляем JSON (Триггер для бота)
-            const userData = { id: userId, active: true, platform: platform, date: new Date().toISOString(), expire_date: "01.01.2030" };
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(userData, null, 2))));
-            
             try {
-                const check = await fetch(`https://api.github.com/repos/${REPO}/contents/database/users/${userId}.json`, {
-                    headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
-                });
-                let sha = check.ok ? (await check.json()).sha : null;
+                // 1. Получаем список общих серверов
+                const resGen = await fetch(`https://raw.githubusercontent.com/${REPO}/main/access_control.json?t=${Date.now()}`);
+                const genData = await resGen.json();
+                let finalLinks = [...genData.server_list];
 
-                await fetch(`https://api.github.com/repos/${REPO}/contents/database/users/${userId}.json`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${GH_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: `Flow update ${userId}`, content: content, sha: sha })
-                });
-            } catch (e) { console.error("GitHub API Error"); }
-
-            // ШАГ 2: Проверка готовности файла в папке SUBS
-            let attempts = 0;
-            const interval = setInterval(async () => {
-                attempts++;
-                try {
-                    const res = await fetch(personalSubUrl + `?t=${Date.now()}`);
-                    if (res.ok) {
-                        const text = await res.text();
-                        // Проверяем, что файл не пустой и содержит ключи
-                        if (text.length > 100 && text.includes('vless')) {
-                            clearInterval(interval);
-                            notifyText.innerText = "✅ Готово! Импортирую...";
-                            
-                            setTimeout(() => {
-                                notify.classList.remove('active');
-                                
-                                // ФОРМИРУЕМ ССЫЛКУ ЧЕРЕЗ МОСТ VPONE
-                                let finalUrl;
-                                if (platform === 'Android') {
-                                    finalUrl = `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}`;
-                                } else {
-                                    finalUrl = `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}`;
-                                }
-                                
-                                window.location.href = finalUrl;
-                            }, 1500);
-                        }
+                // 2. Получаем данные юзера и его ЛИЧНЫЕ сервера из админки
+                const resUser = await fetch(`https://raw.githubusercontent.com/${REPO}/main/database/users/${userId}.json?t=${Date.now()}`);
+                let userFileSHA = null;
+                if (resUser.ok) {
+                    const userData = await resUser.json();
+                    userFileSHA = userData.sha; // для обновления JSON если нужно
+                    if (userData.personal_servers && Array.isArray(userData.personal_servers)) {
+                        finalLinks = finalLinks.concat(userData.personal_servers);
                     }
-                } catch (e) { console.log("Ждем файл..."); }
-
-                if (attempts >= 15) {
-                    clearInterval(interval);
-                    notifyText.innerText = "❌ Бот не успел. Попробуйте еще раз.";
-                    setTimeout(() => notify.classList.remove('active'), 4000);
                 }
-            }, 5000);
+
+                // 3. Формируем текст подписки
+                const subText = finalLinks.join('\n');
+                const subBase64 = btoa(unescape(encodeURIComponent(subText)));
+
+                // 4. Проверяем SHA существующей подписки (чтобы избежать 404/конфликтов)
+                const checkSub = await fetch(`https://api.github.com/repos/${REPO}/contents/${subPath}`, {
+                    headers: { 'Authorization': `token ${GH_TOKEN}` }
+                });
+                let subSHA = checkSub.ok ? (await checkSub.json()).sha : null;
+
+                // 5. Мгновенно обновляем файл подписки на GitHub
+                const updateSub = await fetch(`https://api.github.com/repos/${REPO}/contents/${subPath}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: `Sub update for ${userId}`, 
+                        content: subBase64, 
+                        sha: subSHA 
+                    })
+                });
+
+                if (updateSub.ok) {
+                    notifyText.innerText = "✅ Готово! Импортирую...";
+                    setTimeout(() => {
+                        notify.classList.remove('active');
+                        let finalUrl;
+                        if (platform === 'Android') {
+                            finalUrl = `https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${Date.now()}`;
+                        } else {
+                            finalUrl = `https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2F${encodeURIComponent(personalSubUrl)}%3Ft%3D${Date.now()}`;
+                        }
+                        window.location.href = finalUrl;
+                    }, 1200);
+                } else { throw new Error("GitHub Save Error"); }
+
+            } catch (e) {
+                console.error(e);
+                notifyText.innerText = "❌ Ошибка. Попробуйте снова.";
+                setTimeout(() => notify.classList.remove('active'), 3000);
+            }
         }
 
         window.onload = () => {
