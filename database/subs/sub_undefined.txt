@@ -1,6 +1,6 @@
 #profile-title: 🟥 Ghost Link | ЗАБЛОКИРОВАНО
 #profile-update-interval: 1
-#version: 1775559244
+#version: 1775559303
 #announce: ✅ Активно до: 31.12.2099. Для продления пишите @admin
 
 vless://expired-id@127.0.0.1:443?encryption=none&security=none#🟥 ПОДПИСКА ИСТЕКЛА
