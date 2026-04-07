@@ -19,11 +19,9 @@ jobs:
       - name: Update all sub files
         run: |
           mkdir -p database/subs
-          
           python3 <<EOF
-          import json, base64, os
+          import json, os
 
-          # 1. Читаем конфиги
           with open('access_control.json', 'r') as f:
               data = json.load(f)
               links = [s.split('#')[0].strip() for s in data['server_list'] if s]
@@ -43,25 +41,18 @@ jobs:
                       user_id = filename.replace('sub_', '').replace('.txt', '')
                       
                       final_lines = []
-                      
-                      # 1. ТВОЕ ОБЪЯВЛЕНИЕ (в виде ссылки, которая не подключается)
-                      # Это сделает текст ПЕРВЫМ в списке серверов
+                      # Первая строка - заглушка с твоим текстом (это 100% валидный vless)
                       ann_text = f"Все сервера работают в штатном режиме ✅ | ID: {user_id} ⚡️"
                       final_lines.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:0?type=tcp&security=none#{ann_text}")
                       
-                      # 2. РЕАЛЬНЫЕ СЕРВЕРА
+                      # Остальные сервера
                       for i, link in enumerate(links):
                           name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
                           final_lines.append(f"{link}#{name_template.replace('{id}', user_id)}")
                       
-                      # Соединяем всё переносом строки
-                      sub_content = "\n".join(final_lines)
-                      
-                      # Кодируем в чистый Base64 (без лишних заголовков снаружи)
-                      encoded = base64.b64encode(sub_content.encode('utf-8')).decode('utf-8')
-                      
+                      # Сохраняем как ЧИСТЫЙ ТЕКСТ (без Base64)
                       with open(os.path.join(subs_dir, filename), 'w') as out:
-                          out.write(encoded)
+                          out.write("\n".join(final_lines))
           EOF
 
       - name: Commit and Push
@@ -69,6 +60,6 @@ jobs:
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Final Fix: 100% Valid Format" || echo "No changes"
+          git commit -m "🤖 Чистый текст без кодировок" || echo "No changes"
           git push
           
