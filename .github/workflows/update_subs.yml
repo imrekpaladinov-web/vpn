@@ -1,0 +1,42 @@
+name: Global Subscription Update
+
+on:
+  push:
+    paths:
+      - 'access_control.json' # Скрипт сработает только если ты изменил этот файл
+
+jobs:
+  update-all-subs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Update all sub files
+        run: |
+          # 1. Читаем новый список серверов из access_control.json
+          # Используем python для надежного парсинга JSON
+          SERVERS=$(python3 -c "import json; print('\n'.join([s.split('#')[0].strip() for s in json.load(open('access_control.json'))['server_list'] if s]))")
+          
+          # 2. Кодируем список в Base64
+          B64_SERVERS=$(echo "$SERVERS" | base64 -w 0)
+          
+          # 3. Ищем все файлы подписок в папке database/subs/
+          # И заменяем их содержимое на новый Base64
+          if [ -d "database/subs" ]; then
+            for file in database/subs/sub_*.txt; do
+              if [ -f "$file" ]; then
+                echo "$B64_SERVERS" > "$file"
+                echo "Updated $file"
+              fi
+            done
+          fi
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "GhostBot"
+          git config --global user.email "bot@ghostlink.vpn"
+          git add database/subs/*.txt
+          git commit -m "🤖 Авто-обновление всех подписок (изменен access_control)" || echo "Нет изменений для коммита"
+          git push
+          
