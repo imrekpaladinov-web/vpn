@@ -23,6 +23,7 @@ jobs:
           python3 <<EOF
           import json, base64, os
 
+          # 1. Читаем конфиги
           with open('access_control.json', 'r') as f:
               data = json.load(f)
               links = [s.split('#')[0].strip() for s in data['server_list'] if s]
@@ -43,7 +44,8 @@ jobs:
                       
                       final_lines = []
                       
-                      # 1. ОБЪЯВЛЕНИЕ (делаем его первой ссылкой, которая не подключается)
+                      # 1. ТВОЕ ОБЪЯВЛЕНИЕ (в виде ссылки, которая не подключается)
+                      # Это сделает текст ПЕРВЫМ в списке серверов
                       ann_text = f"Все сервера работают в штатном режиме ✅ | ID: {user_id} ⚡️"
                       final_lines.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:0?type=tcp&security=none#{ann_text}")
                       
@@ -52,8 +54,10 @@ jobs:
                           name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
                           final_lines.append(f"{link}#{name_template.replace('{id}', user_id)}")
                       
-                      # Склеиваем всё и кодируем в Base64
+                      # Соединяем всё переносом строки
                       sub_content = "\n".join(final_lines)
+                      
+                      # Кодируем в чистый Base64 (без лишних заголовков снаружи)
                       encoded = base64.b64encode(sub_content.encode('utf-8')).decode('utf-8')
                       
                       with open(os.path.join(subs_dir, filename), 'w') as out:
