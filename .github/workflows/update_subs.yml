@@ -20,41 +20,43 @@ jobs:
         run: |
           mkdir -p database/subs
           python3 <<EOF
-          import json, base64, os
+          import json, base64, os, time
 
           with open('access_control.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
               raw_links = [l.split('#')[0].strip() for l in data.get('server_list', []) if l.strip()]
 
           names = ['🇪🇺 Основной ⚡', '🇪🇺 Резерв ⚡', '🇪🇺 Запасной ⚡', '🇪🇺 YouTube ⚡', '🇪🇺 Соц.сети ⚡']
+          
+          # Параметры: 10 ТБ и 10 лет (315360000 секунд)
+          total_bytes = 10 * 1024 * 1024 * 1024 * 1024
+          expire_date = int(time.time()) + (10 * 365 * 24 * 3600)
 
           subs_dir = 'database/subs'
           if os.path.exists(subs_dir):
               for filename in os.listdir(subs_dir):
                   if filename.startswith('sub_') and filename.endswith('.txt'):
+                      # Вытаскиваем ID (например, GL-1234)
                       user_id = filename.replace('sub_', '').replace('.txt', '')
                       
-                      # 1. ФОРМИРУЕМ ШАПКУ ОПИСАНИЯ
-                      # Это то, что будет висеть в самом верху над серверами
+                      # ФОРМИРУЕМ ТЕГИ (Директивы)
                       header = [
-                          f"REMARKS: Ghost Link Premium 👻",
-                          f"STATUS: Активен ✅ | ID: {user_id}",
-                          f"STATUS: Лимит: Безлимитный ♾",
-                          f"STATUS: Истекает: 01.01.2027",
-                          f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+                          f"#profile-title: Ghost Link Premium | ID: {user_id}",
+                          f"#announce: Добро пожаловать! Ваша подписка активна ✅ [User ID: {user_id}]",
+                          f"#subscription-userinfo: upload=0; download=0; total={total_bytes}; expire={expire_date}",
+                          "" # Пустая строка для разделения
                       ]
                       
-                      # 2. ДОБАВЛЯЕМ СЕРВЕРА С НАЗВАНИЯМИ
+                      # Добавляем сервера
                       server_lines = []
                       for i, link in enumerate(raw_links):
                           name = names[i] if i < len(names) else '🇪🇺 Доп. сервер ⚡'
                           server_lines.append(f"{link}#{name}")
                       
-                      # Склеиваем всё в один текстовый блок
+                      # Склеиваем всё
                       full_content = "\n".join(header + server_lines)
                       
-                      # 3. КОДИРУЕМ В BASE64
-                      # Без этого заголовки STATUS/REMARKS превратят подписку в "невалидную"
+                      # Кодируем в Base64 (стандарт для большинства импортов)
                       encoded = base64.b64encode(full_content.encode('utf-8')).decode('utf-8')
                       
                       with open(os.path.join(subs_dir, filename), 'w', encoding='utf-8') as out:
@@ -66,6 +68,6 @@ jobs:
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Возврат описания (REMARKS/STATUS)" || echo "No changes"
+          git commit -m "🤖 Profile Title, Announce, UserInfo with ID" || echo "No changes"
           git push
           
