@@ -20,19 +20,13 @@ jobs:
         run: |
           mkdir -p database/subs
           python3 <<EOF
-          import json, os
+          import json, base64, os
 
-          with open('access_control.json', 'r') as f:
+          with open('access_control.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
-              links = [s.split('#')[0].strip() for s in data['server_list'] if s]
+              raw_links = [l.split('#')[0].strip() for l in data.get('server_list', []) if l.strip()]
 
-          names = [
-              '🇪🇺 Основной | ID: {id} ⚡',
-              '🇪🇺 Резерв | ID: {id} ⚡',
-              '🇪🇺 Запасной | ID: {id} ⚡',
-              '🇪🇺 YouTube | ID: {id} ⚡',
-              '🇪🇺 Соц.сети | ID: {id} ⚡'
-          ]
+          names = ['🇪🇺 Основной ⚡', '🇪🇺 Резерв ⚡', '🇪🇺 Запасной ⚡', '🇪🇺 YouTube ⚡', '🇪🇺 Соц.сети ⚡']
 
           subs_dir = 'database/subs'
           if os.path.exists(subs_dir):
@@ -40,19 +34,31 @@ jobs:
                   if filename.startswith('sub_') and filename.endswith('.txt'):
                       user_id = filename.replace('sub_', '').replace('.txt', '')
                       
-                      final_lines = []
-                      # Первая строка - заглушка с твоим текстом (это 100% валидный vless)
-                      ann_text = f"Все сервера работают в штатном режиме ✅ | ID: {user_id} ⚡️"
-                      final_lines.append(f"vless://00000000-0000-0000-0000-000000000000@0.0.0.0:0?type=tcp&security=none#{ann_text}")
+                      # 1. ФОРМИРУЕМ ШАПКУ ОПИСАНИЯ
+                      # Это то, что будет висеть в самом верху над серверами
+                      header = [
+                          f"REMARKS: Ghost Link Premium 👻",
+                          f"STATUS: Активен ✅ | ID: {user_id}",
+                          f"STATUS: Лимит: Безлимитный ♾",
+                          f"STATUS: Истекает: 01.01.2027",
+                          f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+                      ]
                       
-                      # Остальные сервера
-                      for i, link in enumerate(links):
-                          name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
-                          final_lines.append(f"{link}#{name_template.replace('{id}', user_id)}")
+                      # 2. ДОБАВЛЯЕМ СЕРВЕРА С НАЗВАНИЯМИ
+                      server_lines = []
+                      for i, link in enumerate(raw_links):
+                          name = names[i] if i < len(names) else '🇪🇺 Доп. сервер ⚡'
+                          server_lines.append(f"{link}#{name}")
                       
-                      # Сохраняем как ЧИСТЫЙ ТЕКСТ (без Base64)
-                      with open(os.path.join(subs_dir, filename), 'w') as out:
-                          out.write("\n".join(final_lines))
+                      # Склеиваем всё в один текстовый блок
+                      full_content = "\n".join(header + server_lines)
+                      
+                      # 3. КОДИРУЕМ В BASE64
+                      # Без этого заголовки STATUS/REMARKS превратят подписку в "невалидную"
+                      encoded = base64.b64encode(full_content.encode('utf-8')).decode('utf-8')
+                      
+                      with open(os.path.join(subs_dir, filename), 'w', encoding='utf-8') as out:
+                          out.write(encoded)
           EOF
 
       - name: Commit and Push
@@ -60,6 +66,6 @@ jobs:
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Чистый текст без кодировок" || echo "No changes"
+          git commit -m "🤖 Возврат описания (REMARKS/STATUS)" || echo "No changes"
           git push
           
