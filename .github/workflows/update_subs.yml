@@ -6,6 +6,9 @@ on:
       - 'access_control.json'
   workflow_dispatch:
 
+permissions:
+  contents: write # Явно даем права на запись прямо в коде
+
 jobs:
   update-all-subs:
     runs-on: ubuntu-latest
@@ -15,49 +18,51 @@ jobs:
 
       - name: Update all sub files
         run: |
-          if [ -d "database/subs" ]; then
-            for file in database/subs/sub_*.txt; do
-              if [ -f "$file" ]; then
-                USER_ID=$(basename "$file" .txt | sed 's/sub_//')
-                
-                # Используем Python для строгой разметки названий
-                SERVERS=$(python3 -c "
-import json
-with open('access_control.json', 'r') as f:
-    data = json.load(f)
-    uid = '$USER_ID'
-    links = [s.split('#')[0].strip() for s in data['server_list'] if s]
-    
-    # Твой список названий
-    names = [
-        '🇪🇺 Основной | ID: {id} ⚡',
-        '🇪🇺 Резерв | ID: {id} ⚡',
-        '🇪🇺 Запасной | ID: {id} ⚡',
-        '🇪🇺 YouTube | ID: {id} ⚡',
-        '🇪🇺 Instagram, TikTok | ID: {id} ⚡'
-    ]
-    
-    final_list = []
-    for i, link in enumerate(links):
-        # Если ссылок больше, чем названий в списке, используем дефолтное
-        name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
-        full_name = name_template.replace('{id}', uid)
-        final_list.append(f'{link}#{full_name}')
-        
-    print('\n'.join(final_list))
-")
-                
-                echo "$SERVERS" | base64 -w 0 > "$file"
-                echo "✅ $file обновлен с красивыми названиями для $USER_ID"
-              fi
-            done
-          fi
+          # Создаем папку если её нет (на всякий случай)
+          mkdir -p database/subs
+          
+          # Запускаем Python скрипт для обработки
+          python3 <<EOF
+          import json, base64, os
 
-      - name: Commit and Push changes
+          # 1. Читаем конфиги
+          with open('access_control.json', 'r') as f:
+              data = json.load(f)
+              links = [s.split('#')[0].strip() for s in data['server_list'] if s]
+
+          names = [
+              '🇪🇺 Основной | ID: {id} ⚡',
+              '🇪🇺 Резерв | ID: {id} ⚡',
+              '🇪🇺 Запасной | ID: {id} ⚡',
+              '🇪🇺 YouTube | ID: {id} ⚡',
+              '🇪🇺 Соц.сети | ID: {id} ⚡'
+          ]
+
+          # 2. Обходим все файлы в папке subs
+          subs_dir = 'database/subs'
+          if os.path.exists(subs_dir):
+              for filename in os.listdir(subs_dir):
+                  if filename.startswith('sub_') and filename.endswith('.txt'):
+                      user_id = filename.replace('sub_', '').replace('.txt', '')
+                      
+                      final_list = []
+                      for i, link in enumerate(links):
+                          name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
+                          full_name = name_template.replace('{id}', user_id)
+                          final_list.append(f"{link}#{full_name}")
+                      
+                      # Кодируем и сохраняем
+                      sub_content = '\n'.join(final_list)
+                      with open(os.path.join(subs_dir, filename), 'w') as out:
+                          out.write(base64.b64encode(sub_content.encode('utf-8')).decode('utf-8'))
+                      print(f"Updated {filename}")
+          EOF
+
+      - name: Commit and Push
         run: |
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Названия серверов приведены к единому стандарту Ghost Link" || echo "No changes"
+          git commit -m "🤖 Пересборка всех подписок" || echo "No changes"
           git push
           
