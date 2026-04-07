@@ -3,7 +3,8 @@ name: Global Subscription Update
 on:
   push:
     paths:
-      - 'access_control.json' # Скрипт сработает только если ты изменил этот файл
+      - 'access_control.json'
+  workflow_dispatch:
 
 jobs:
   update-all-subs:
@@ -14,20 +15,40 @@ jobs:
 
       - name: Update all sub files
         run: |
-          # 1. Читаем новый список серверов из access_control.json
-          # Используем python для надежного парсинга JSON
-          SERVERS=$(python3 -c "import json; print('\n'.join([s.split('#')[0].strip() for s in json.load(open('access_control.json'))['server_list'] if s]))")
-          
-          # 2. Кодируем список в Base64
-          B64_SERVERS=$(echo "$SERVERS" | base64 -w 0)
-          
-          # 3. Ищем все файлы подписок в папке database/subs/
-          # И заменяем их содержимое на новый Base64
           if [ -d "database/subs" ]; then
             for file in database/subs/sub_*.txt; do
               if [ -f "$file" ]; then
-                echo "$B64_SERVERS" > "$file"
-                echo "Updated $file"
+                USER_ID=$(basename "$file" .txt | sed 's/sub_//')
+                
+                # Используем Python для строгой разметки названий
+                SERVERS=$(python3 -c "
+import json
+with open('access_control.json', 'r') as f:
+    data = json.load(f)
+    uid = '$USER_ID'
+    links = [s.split('#')[0].strip() for s in data['server_list'] if s]
+    
+    # Твой список названий
+    names = [
+        '🇪🇺 Основной | ID: {id} ⚡',
+        '🇪🇺 Резерв | ID: {id} ⚡',
+        '🇪🇺 Запасной | ID: {id} ⚡',
+        '🇪🇺 YouTube | ID: {id} ⚡',
+        '🇪🇺 Соц.сети | ID: {id} ⚡'
+    ]
+    
+    final_list = []
+    for i, link in enumerate(links):
+        # Если ссылок больше, чем названий в списке, используем дефолтное
+        name_template = names[i] if i < len(names) else '🇪🇺 Доп. сервер | ID: {id} ⚡'
+        full_name = name_template.replace('{id}', uid)
+        final_list.append(f'{link}#{full_name}')
+        
+    print('\n'.join(final_list))
+")
+                
+                echo "$SERVERS" | base64 -w 0 > "$file"
+                echo "✅ $file обновлен с красивыми названиями для $USER_ID"
               fi
             done
           fi
@@ -37,6 +58,6 @@ jobs:
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Авто-обновление всех подписок (изменен access_control)" || echo "Нет изменений для коммита"
+          git commit -m "🤖 Названия серверов приведены к единому стандарту Ghost Link" || echo "No changes"
           git push
           
