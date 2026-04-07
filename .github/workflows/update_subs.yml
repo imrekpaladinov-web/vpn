@@ -20,15 +20,16 @@ jobs:
         run: |
           mkdir -p database/subs
           python3 <<EOF
-          import json, base64, os, time
+          import json, os, time
 
+          # Загружаем конфиг серверов
           with open('access_control.json', 'r', encoding='utf-8') as f:
               data = json.load(f)
               raw_links = [l.split('#')[0].strip() for l in data.get('server_list', []) if l.strip()]
 
           names = ['🇪🇺 Основной ⚡', '🇪🇺 Резерв ⚡', '🇪🇺 Запасной ⚡', '🇪🇺 YouTube ⚡', '🇪🇺 Соц.сети ⚡']
           
-          # 10 ТБ и 10 лет
+          # 10 ТБ и 10 лет в секундах
           total_bytes = 10 * 1024 * 1024 * 1024 * 1024
           expire_date = int(time.time()) + (10 * 365 * 24 * 3600)
 
@@ -36,33 +37,29 @@ jobs:
           if os.path.exists(subs_dir):
               for filename in os.listdir(subs_dir):
                   if filename.startswith('sub_') and filename.endswith('.txt'):
-                      # Извлекаем ID (например, GL-1234)
+                      # Вытаскиваем реальный ID пользователя из имени файла
                       user_id = filename.replace('sub_', '').replace('.txt', '')
                       
-                      # 1. Формируем ШАПКУ с ID
+                      # ФОРМИРУЕМ СТРУКТУРУ ЧИСТЫМ ТЕКСТОМ
                       header = [
-                          f"#profile-title: Ghost Link | {user_id}",
-                          f"#announce: Ghost Link Premium ✅ | Ваш ID: {user_id} | Лимит: 10 ТБ",
+                          f"#profile-title: Ghost Link | ID: {user_id}",
+                          f"#announce: Подписка активна ✅ Пользователь: {user_id}",
                           f"#subscription-userinfo: upload=0; download=0; total={total_bytes}; expire={expire_date}",
-                          "" 
+                          "" # Обязательная пустая строка перед ссылками
                       ]
                       
-                      # 2. Формируем СЕРВЕРА с ID в названии
+                      # Собираем список серверов
                       server_lines = []
                       for i, link in enumerate(raw_links):
-                          name_base = names[i] if i < len(names) else '🇪🇺 Доп. сервер ⚡'
-                          # Добавляем ID прямо в название каждого сервера
-                          server_lines.append(f"{link}#{name_base} [{user_id}]")
+                          name = names[i] if i < len(names) else f'🇪🇺 Доп. сервер {i+1} ⚡'
+                          server_lines.append(f"{link}#{name}")
                       
-                      # Склеиваем всё
+                      # Склеиваем всё в один RAW текст
                       full_content = "\n".join(header + server_lines)
                       
-                      # 3. Кодируем в Base64
-                      # Happ понимает RAW, но v2raytun чаще требует Base64 для тегов #profile-title
-                      encoded = base64.b64encode(full_content.encode('utf-8')).decode('utf-8')
-                      
+                      # Записываем файл (без Base64)
                       with open(os.path.join(subs_dir, filename), 'w', encoding='utf-8') as out:
-                          out.write(encoded)
+                          out.write(full_content)
           EOF
 
       - name: Commit and Push
@@ -70,6 +67,6 @@ jobs:
           git config --global user.name "GhostBot"
           git config --global user.email "bot@ghostlink.vpn"
           git add database/subs/*.txt
-          git commit -m "🤖 Full Update: ID in Title, Announce, and Servers" || echo "No changes"
+          git commit -m "🤖 RAW format update: Title, Announce, UserInfo" || echo "No changes"
           git push
           
