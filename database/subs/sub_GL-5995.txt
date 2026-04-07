@@ -1,6 +1,6 @@
 #profile-title: Ghost Link | GL-5995
 #profile-update-interval: 1
-#version: 1775514416
+#version: 1775542830
 #subscription-userinfo: upload=0; download=0; total=109951162777600; expire=253402214400
 #announce: ✅ Активно до: 31.12.2099 | ID: GL-5995 ⚡️
 
