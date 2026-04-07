@@ -1,6 +1,6 @@
 #profile-title: Ghost Link | GL-7006
 #profile-update-interval: 1
-#version: 1775603308
+#version: 1775603768
 #subscription-userinfo: upload=0; download=0; total=109951162777600; expire=253402214400
 #announce: ✅ Активно до: 01.01.2030 | ID: GL-7006 ⚡️
 
