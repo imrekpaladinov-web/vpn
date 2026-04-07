@@ -34,7 +34,7 @@ with open('access_control.json', 'r') as f:
         '🇪🇺 Резерв | ID: {id} ⚡',
         '🇪🇺 Запасной | ID: {id} ⚡',
         '🇪🇺 YouTube | ID: {id} ⚡',
-        '🇪🇺 Соц.сети | ID: {id} ⚡'
+        '🇪🇺 Instagram, TikTok | ID: {id} ⚡'
     ]
     
     final_list = []
