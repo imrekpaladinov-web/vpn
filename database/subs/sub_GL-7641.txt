@@ -1,6 +1,6 @@
 #profile-title: Ghost Link | ID: GL-7641
 #announce: Подписка активна ✅ Пользователь: GL-7641
-#subscription-userinfo: upload=0; download=0; total=10995116277760; expire=2091057260
+#subscription-userinfo: upload=0; download=0; total=10995116277760; expire=2091057289
 
 vless://4ad9533a-4cc3-4f13-a8f5-8f8169f1a13d@84.201.180.167:443?security=reality&encryption=none&pbk=SXe0_xjHjYa34_94-h1esp2PcXoLxRF6vhjgDkNCG0I&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com&sid=beab#🇪🇺 Основной ⚡
 vless://ade97533-19c4-49f7-a6b5-e1a019743fd7@84.201.130.38:443?security=reality&encryption=none&pbk=jUvjn6lthWIDHn1SgXhLfdfiZyPPzYQIUIT1bq_rrgo&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=st.vk.com&sid=2e4bef99fc#🇪🇺 Резерв ⚡
