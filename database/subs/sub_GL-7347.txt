@@ -1,9 +1,9 @@
 #profile-title: Ghost Link | ID: GL-7347
 #announce: Подписка активна ✅ Пользователь: GL-7347
-#subscription-userinfo: upload=0; download=0; total=10995116277760; expire=2091057289
+#subscription-userinfo: upload=0; download=0; total=10995116277760; expire=2091057460
 
 vless://4ad9533a-4cc3-4f13-a8f5-8f8169f1a13d@84.201.180.167:443?security=reality&encryption=none&pbk=SXe0_xjHjYa34_94-h1esp2PcXoLxRF6vhjgDkNCG0I&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com&sid=beab#🇪🇺 Основной ⚡
 vless://ade97533-19c4-49f7-a6b5-e1a019743fd7@84.201.130.38:443?security=reality&encryption=none&pbk=jUvjn6lthWIDHn1SgXhLfdfiZyPPzYQIUIT1bq_rrgo&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=st.vk.com&sid=2e4bef99fc#🇪🇺 Резерв ⚡
 vless://c2277f95-b694-43c3-b753-06493c9fd545@51.250.104.29:443?security=reality&encryption=none&pbk=vTZhfTFn5xWufzDY06cmSP-8-cclTUWWK4oIBxww7AU&headerType=none&fp=chrome&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com&sid=0adafbd3e8f2#🇪🇺 Запасной ⚡
 vless://8ae7b082-8ada-4352-a66e-c0ab7e48d3ed@91.222.236.224:443?security=reality&encryption=none&pbk=3JLrOA21KOD2Pd6B6YifuJaZkzH8qL9okJh8cvX7R0M&headerType=none&fp=random&spx=%2F&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=m.vk.ru&sid=8ac77e6b777376c8#🇪🇺 YouTube ⚡
-vless://ad1d82be-0d67-0248-af2c-6a1ee6ed6f05@166.1.131.9:21996?security=reality&encryption=none&pbk=pd7ujYvrLsVhoEia4dhxPqmpAuapnezqMilXBSDIfgk&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=speed.cloudflare.com#🇪🇺 Соц.сети ⚡
+vless://46917323-63d4-4797-9543-21b5d4ff7d7b@thaelen.kaguya.sbs:443?security=reality&encryption=none&pbk=dg2xoTnuNw7Y8CW000rDQAFRfxF1Ru2AmSinL_j6Mmk&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=max.ru&sid=dc4aa6635008a9ae#🇪🇺 Соц.сети ⚡
