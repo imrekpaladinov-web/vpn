@@ -3,25 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost Headshot Admin</title>
+    <title>Ghost Headshot v2.0</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #f85149; --green: #2ea44f; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding: 20px; }
+        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #f85149; --green: #2ea44f; --gray: #30363d; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding: 15px; }
         .container { max-width: 800px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 20px; margin-bottom: 20px; }
-        .user-card { background: var(--card); border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-        .user-card:hover { border-color: #8b949e; }
-        .user-id { font-size: 1.1em; font-weight: bold; color: white; display: flex; align-items: center; gap: 10px; }
-        .status-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
-        .status-active { background: rgba(46, 164, 79, 0.2); color: #7ee787; border: 1px solid #2ea44f; }
-        .status-frozen { background: rgba(248, 81, 73, 0.2); color: #ffa198; border: 1px solid #f85149; }
-        .info { font-size: 0.85em; color: #8b949e; margin-top: 4px; }
-        button { background: #21262d; border: 1px solid #30363d; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #30363d; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray); padding-bottom: 15px; margin-bottom: 15px; }
+        .user-card { background: var(--card); border: 1px solid var(--gray); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .user-id { font-size: 1.1em; font-weight: bold; color: white; margin-bottom: 5px; }
+        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 0.7em; text-transform: uppercase; border: 1px solid; }
+        .status-active { color: #7ee787; border-color: var(--green); background: rgba(46,164,79,0.1); }
+        .status-frozen { color: #ffa198; border-color: var(--accent); background: rgba(248,81,73,0.1); }
+        button { background: #21262d; border: 1px solid var(--gray); color: white; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 40px; }
+        button:active { transform: scale(0.95); }
         .btn-kill { color: var(--accent); border-color: var(--accent); }
-        .btn-kill:hover { background: var(--accent); color: white; }
-        #qr-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; text-align: center; color: black; z-index: 100; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99; }
+        #qr-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background: white; padding: 20px; border-radius: 12px; text-align: center; color: black; z-index: 1000; }
+        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 999; }
+        .loader { text-align: center; padding: 50px; font-size: 1.2em; color: var(--green); font-weight: bold; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 </head>
@@ -29,23 +27,20 @@
 
 <div class="container">
     <div class="header">
-        <h1>💀 GHOST HEADSHOT</h1>
-        <button onclick="loadUsers()">🔄 Обновить</button>
+        <h1 style="color:white; margin:0;">💀 HEADSHOT</h1>
+        <button onclick="loadUsers()" style="background: var(--green);">🔄 ОБНОВИТЬ</button>
     </div>
-    <div id="users-list">
-        <div style="text-align:center; padding: 50px;">Загрузка базы данных...</div>
-    </div>
+    <div id="users-list"><div class="loader">ПОДКЛЮЧЕНИЕ К БАЗЕ...</div></div>
 </div>
 
 <div class="overlay" onclick="closeQR()"></div>
 <div id="qr-modal">
     <div id="qr-code"></div>
-    <p id="qr-text" style="margin-top:10px; font-family: monospace;"></p>
-    <button onclick="closeQR()" style="background:#000; width:100%;">ЗАКРЫТЬ</button>
+    <p id="qr-text" style="margin-top:10px; font-family: monospace; font-size: 1.2em;"></p>
+    <button onclick="closeQR()" style="background:#000; width:100%; color:white;">ЗАКРЫТЬ</button>
 </div>
 
 <script>
-    // Твои проверенные данные
     const p1 = "Z2hwX2xVSFhlb0pTUWN"; 
     const p2 = "zcm9iYU5GWnhvQzZPTlg3VFlKeDNRUDZxaA=="; 
     const T = atob(p1 + p2);
@@ -53,27 +48,46 @@
 
     async function ghRequest(path, method = 'GET', body = null) {
         const url = `https://api.github.com/repos/${R}/contents/${path}`;
-        const headers = { 'Authorization': `token ${T}`, 'Accept': 'application/vnd.github.v3+json' };
+        const headers = { 
+            'Authorization': `token ${T}`, 
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache'
+        };
         const config = { method, headers };
         if (body) config.body = JSON.stringify(body);
-        const res = await fetch(url, config);
-        return res.json();
+        
+        try {
+            const res = await fetch(url, config);
+            if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+            return await res.json();
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
     }
 
     async function loadUsers() {
         const list = document.getElementById('users-list');
-        const files = await ghRequest('database/users');
+        list.innerHTML = '<div class="loader">СКАНИРОВАНИЕ...</div>';
+        
+        // Добавляем ?t= для обхода кэша GitHub
+        const files = await ghRequest('database/users?t=' + Date.now());
+        
         if (!Array.isArray(files)) {
-            list.innerHTML = "<div style='color:red;'>Ошибка доступа! Проверь репозиторий.</div>";
+            list.innerHTML = "<div style='color:red; text-align:center;'>ОШИБКА ДОСТУПА. ПРОВЕРЬ ТОКЕН И РЕПО.</div>";
             return;
         }
-        
+
         list.innerHTML = "";
+        // Сортируем файлы, чтобы видеть последние изменения сверху
+        files.reverse(); 
+
         for (let file of files) {
             if (file.name.endsWith('.json')) {
-                const content = await fetch(file.download_url + '?t=' + Date.now()).then(r => r.json());
-                const userId = file.name.replace('.json', '');
-                renderUser(userId, content, file.sha);
+                try {
+                    const content = await fetch(file.download_url + '?t=' + Date.now()).then(r => r.json());
+                    renderUser(file.name.replace('.json', ''), content, file.sha);
+                } catch (e) { console.error("Ошибка загрузки юзера", file.name); }
             }
         }
     }
@@ -87,13 +101,14 @@
 
         card.innerHTML = `
             <div>
-                <div class="user-id">${id} <span class="status-badge ${sClass}">${sText}</span></div>
-                <div class="info">📅 Истекает: ${data.expire_date}</div>
+                <div class="user-id">${id}</div>
+                <span class="status-badge ${sClass}">${sText}</span>
+                <div style="font-size:0.8em; color:#8b949e; margin-top:5px;">📅 ${data.expire_date}</div>
             </div>
-            <div style="display:flex; gap:8px;">
-                <button onclick="showQR('${id}')">📱</button>
-                <button onclick="toggleStatus('${id}', ${data.active}, '${sha}', '${data.expire_date}')">${data.active ? '⏸' : '▶️'}</button>
-                <button onclick="deleteUser('${id}', '${sha}')" class="btn-kill">🎯</button>
+            <div style="display:flex; gap:10px;">
+                <button onclick="showQR('${id}')" title="Показать QR">📱</button>
+                <button onclick="toggleStatus('${id}', ${data.active}, '${sha}', '${data.expire_date}')" title="Заморозить">⏸</button>
+                <button onclick="deleteUser('${id}', '${sha}')" class="btn-kill" title="УДАЛИТЬ">🎯</button>
             </div>
         `;
         list.appendChild(card);
@@ -101,36 +116,43 @@
 
     async function toggleStatus(id, current, sha, expire) {
         const newStatus = !current;
+        if (!confirm(`${newStatus ? 'Разморозить' : 'ЗАМОРОЗИТЬ'} юзера ${id}?`)) return;
+
         const content = btoa(JSON.stringify({ 
             active: newStatus, 
             expire_date: expire,
             status_text: newStatus ? "" : `🟥 Подписка заморожена | ID: ${id}`
         }, null, 2));
 
-        await ghRequest(`database/users/${id}.json`, 'PUT', {
-            message: `Admin: ${newStatus ? 'Activate' : 'Freeze'} ${id}`,
+        const res = await ghRequest(`database/users/${id}.json`, 'PUT', {
+            message: `Admin Action: ${id} status to ${newStatus}`,
             content: content, sha: sha
         });
-        setTimeout(loadUsers, 1500);
+
+        if (res) { alert("ГОТОВО. Жди 30 сек обновления."); loadUsers(); }
+        else { alert("ОШИБКА ЗАПРОСА"); }
     }
 
     async function deleteUser(id, sha) {
-        if (!confirm(`Headshot по ${id}?`)) return;
-        await ghRequest(`database/users/${id}.json`, 'DELETE', {
-            message: `Admin: Delete ${id}`, sha: sha
+        if (!confirm(`УДАЛИТЬ ${id} НАВСЕГДА? СЛИВ БУДЕТ ОСТАНОВЛЕН.`)) return;
+
+        const res = await ghRequest(`database/users/${id}.json`, 'DELETE', {
+            message: `Admin Action: Headshot ${id}`, sha: sha
         });
-        setTimeout(loadUsers, 1500);
+
+        if (res) { alert("ЛИКВИДИРОВАН."); loadUsers(); }
+        else { alert("ОШИБКА УДАЛЕНИЯ"); }
     }
 
     function showQR(id) {
-        const subLink = `v2raytun://import/https://${window.location.hostname}/database/subs/sub_${id}.txt`;
+        const subLink = `v2raytun://import/https://imrekpaladinov-web.github.io/vpn/database/subs/sub_${id}.txt`;
         const qrBox = document.getElementById('qr-code');
         qrBox.innerHTML = "";
         const qr = qrcode(0, 'M');
         qr.addData(subLink);
         qr.make();
         qrBox.innerHTML = qr.createImgTag(6);
-        document.getElementById('qr-text').innerText = "ID: " + id;
+        document.getElementById('qr-text').innerText = id;
         document.querySelector('.overlay').style.display = 'block';
         document.getElementById('qr-modal').style.display = 'block';
     }
@@ -144,4 +166,3 @@
 </script>
 </body>
 </html>
-
