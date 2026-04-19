@@ -26,6 +26,8 @@
         #chat-container::-webkit-scrollbar-thumb { background: #dfe3e7; border-radius: 10px; }
         .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite;}
         @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 40% { color: #666; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .25em 0 0 #666, .5em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .25em 0 0 #666, .5em 0 0 #666; } }
+        /* Стили для фото в чате */
+        .chat-image { max-width: 200px; border-radius: 12px; margin-bottom: 8px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
@@ -56,9 +58,9 @@
             <div id="welcome-view" class="flex flex-col items-center justify-center h-full mt-[-50px]">
                 <h1 class="text-4xl md:text-5xl font-medium gemini-gradient mb-10 text-center">Де дика дойла, со Ghost AI ю</h1>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full">
-                    <div onclick="fillInput('Математика: 5 класс, 125-гIа номер йе хьуна')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Математика гIо де</div>
-                    <div onclick="fillInput('Нохчийн мотт: Сочинение язъе «Сан Даймохк»')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Сочинение язъе</div>
-                    <div onclick="fillInput('Истори: Шайх Мансурах лаьцна дийца')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Истори дийца</div>
+                    <div onclick="window.fillInput('Математика: 5 класс, 125-гIа номер йе хьуна')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Математика гIо де</div>
+                    <div onclick="window.fillInput('Нохчийн мотт: Сочинение язъе «Сан Даймохк»')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Сочинение язъе</div>
+                    <div onclick="window.fillInput('Истори: Шайх Мансурах лаьцна дийца')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Истори дийца</div>
                 </div>
             </div>
             <div id="messages-list" class="space-y-8 flex flex-col"></div>
@@ -66,17 +68,30 @@
 
         <div class="p-4 bg-white">
             <div class="max-w-3xl mx-auto relative">
-                <div class="bg-[#f0f4f9] rounded-[28px] p-3 focus-within:bg-white focus-within:shadow-lg border border-transparent focus-within:border-gray-200 transition-all">
-                    <textarea id="userInput" rows="1" class="w-full bg-transparent border-none focus:ring-0 p-3 pr-20 resize-none text-gray-800" placeholder="Хазза язъе кхузахь хьайна оьшург..."></textarea>
+                <div class="bg-[#f0f4f9] rounded-[28px] p-3 focus-within:bg-white focus-within:shadow-lg border border-transparent focus-within:border-gray-200 transition-all flex flex-col">
                     
-                    <div class="flex justify-between items-center px-2 pt-2">
+                    <div id="imagePreviewContainer" class="hidden px-3 pb-2 pt-1">
+                        <div class="relative inline-block">
+                            <img id="previewImg" src="" class="h-16 w-16 object-cover rounded-lg border border-gray-300 shadow-sm">
+                            <button onclick="window.removeImage()" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs transition">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea id="userInput" rows="1" class="w-full bg-transparent border-none focus:ring-0 p-3 resize-none text-gray-800" placeholder="Хазза язъе кхузахь хьайна оьшург..."></textarea>
+                    
+                    <div class="flex justify-between items-center px-2 pt-2 border-t border-gray-200/50 mt-1">
                         <div class="flex gap-4">
                             <label class="cursor-pointer text-gray-500 hover:text-blue-600 transition">
                                 <i class="fa-regular fa-image text-xl"></i>
                                 <input type="file" id="imageInput" class="hidden" accept="image/*">
                             </label>
+                            <button id="micBtn" onclick="window.startVoice()" class="text-gray-500 hover:text-blue-600 transition">
+                                <i class="fa-solid fa-microphone text-xl"></i>
+                            </button>
                         </div>
-                        <button onclick="sendMessage()" id="sendBtn" class="bg-white p-2 px-4 rounded-full shadow-sm hover:bg-gray-100 text-blue-600 transition">
+                        <button onclick="window.sendMessage()" id="sendBtn" class="bg-white p-2 px-4 rounded-full shadow-sm hover:bg-gray-100 text-blue-600 transition">
                             <i class="fa-solid fa-paper-plane text-lg"></i>
                         </button>
                     </div>
@@ -96,6 +111,10 @@
         const messagesList = document.getElementById('messages-list');
         const welcomeView = document.getElementById('welcome-view');
         const historyList = document.getElementById('history-list');
+        
+        // Переменные для фото
+        let currentImagePart = null;
+        let currentImageSrc = null;
 
         window.onload = () => {
             const saved = JSON.parse(localStorage.getItem('ghost_history') || '[]');
@@ -107,44 +126,119 @@
             userInput.focus();
         };
 
-        async function sendMessage() {
+        // --- ЛОГИКА ГОЛОСОВОГО ВВОДА ---
+        window.startVoice = () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Хьан браузерехь микрофон ца болх бо (Ваш браузер не поддерживает голосовой ввод)");
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU'; // Распознает русский и акцент
+            
+            recognition.onstart = () => {
+                userInput.placeholder = "ЛадугIуш ду... (Говорите...)";
+                document.getElementById('micBtn').classList.add('text-red-500');
+            };
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userInput.value += (userInput.value ? ' ' : '') + transcript;
+            };
+            
+            recognition.onend = () => {
+                userInput.placeholder = "Хазза язъе кхузахь хьайна оьшург...";
+                document.getElementById('micBtn').classList.remove('text-red-500');
+            };
+            
+            recognition.start();
+        };
+
+        // --- ЛОГИКА ЗАГРУЗКИ ФОТО ---
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Data = reader.result.split(',')[1];
+                currentImagePart = {
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: file.type
+                    }
+                };
+                currentImageSrc = reader.result;
+                
+                // Показываем превью
+                document.getElementById('previewImg').src = currentImageSrc;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        window.removeImage = () => {
+            currentImagePart = null;
+            currentImageSrc = null;
+            document.getElementById('imageInput').value = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+        };
+
+        // --- ЛОГИКА ОТПРАВКИ СООБЩЕНИЯ ---
+        window.sendMessage = async () => {
             const text = userInput.value.trim();
-            if (!text) return;
+            if (!text && !currentImagePart) return; // Можно отправить просто фото без текста
 
             welcomeView.classList.add('hidden');
-            appendMessage('user', text);
+            
+            // Отображаем сообщение пользователя (с фото, если есть)
+            let userContentHtml = '';
+            if (currentImageSrc) {
+                userContentHtml += `<img src="${currentImageSrc}" class="chat-image">`;
+            }
+            if (text) {
+                userContentHtml += `<div>${text}</div>`;
+            }
+            appendMessage('user', userContentHtml);
+            
+            // Сохраняем данные для отправки и очищаем инпут
+            const promptParams = currentImagePart ? [text, currentImagePart] : [text];
+            const textForHistory = text || "Сурт (Фото)";
+            
             userInput.value = '';
+            window.removeImage();
             
             const aiWrapper = appendMessage('ai', '<span class="loading-dots">Ойла йо</span>');
 
             try {
+                // Используем Gemini 1.5 Flash (он поддерживает и текст, и фото)
                 const model = genAI.getGenerativeModel({ 
                     model: "gemini-1.5-flash",
                     systemInstruction: "Ты - Ghost AI. Ты помогаешь чеченским школьникам с ГДЗ и уроками. Отвечай ВСЕГДА на чеченском языке. Будь четким, умным и дружелюбным."
                 });
 
-                const result = await model.generateContent(text);
+                const result = await model.generateContent(promptParams);
                 const response = await result.response.text();
                 
                 renderAIResponse(aiWrapper, response);
-                saveToHistory(text);
+                if(text) saveToHistory(textForHistory);
 
             } catch (error) {
                 aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500">ГIалат девлла: ${error.message}</span>`;
             }
-        }
+        };
 
         function appendMessage(role, content) {
             const wrapper = document.createElement('div');
             wrapper.className = role === 'user' ? 'flex justify-end w-full' : 'ai-msg-container flex gap-4 w-full';
             
             if (role === 'user') {
-                wrapper.innerHTML = `<div class="user-msg shadow-sm">${content}</div>`;
+                wrapper.innerHTML = `<div class="user-msg shadow-sm flex flex-col">${content}</div>`;
             } else {
                 wrapper.innerHTML = `
                     <div class="ghost-avatar flex-shrink-0 mt-1 shadow-md">G</div>
-                    <div class="flex-1">
-                        <div class="prose prose-blue text-gray-800 leading-relaxed max-w-none">${content}</div>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="prose prose-blue text-gray-800 leading-relaxed max-w-none break-words">${content}</div>
                     </div>`;
             }
             messagesList.appendChild(wrapper);
@@ -154,17 +248,24 @@
 
         function renderAIResponse(container, text) {
             const contentDiv = container.querySelector('.prose');
-            contentDiv.innerText = text;
+            // Простая конвертация Markdown (жирный текст и переносы строк)
+            const formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+                
+            contentDiv.innerHTML = formattedText;
             const actionDiv = document.createElement('div');
             actionDiv.className = 'flex gap-4 mt-3 text-gray-400 text-sm';
             actionDiv.innerHTML = `
-                <button onclick="copyThis(this)" class="hover:text-blue-600 transition"><i class="fa-regular fa-copy"></i></button>
+                <button onclick="window.copyThis(this)" class="hover:text-blue-600 transition"><i class="fa-regular fa-copy"></i></button>
                 <button class="hover:text-green-600 transition"><i class="fa-regular fa-thumbs-up"></i></button>
             `;
             contentDiv.after(actionDiv);
         }
 
         window.copyThis = (btn) => {
+            // Копируем текст без HTML тегов
             const text = btn.closest('.ai-msg-container').querySelector('.prose').innerText;
             navigator.clipboard.writeText(text);
             btn.innerHTML = '<i class="fa-solid fa-check text-green-500"></i>';
@@ -185,14 +286,15 @@
             const item = document.createElement('div');
             item.className = 'p-3 text-sm text-gray-600 hover:bg-gray-200 rounded-xl cursor-pointer truncate transition mb-1';
             item.innerHTML = `<i class="fa-regular fa-message mr-2 opacity-50"></i> ${text}`;
-            item.onclick = () => { userInput.value = text; sendMessage(); };
+            item.onclick = () => { userInput.value = text; window.sendMessage(); };
             historyList.prepend(item);
         }
 
+        // Отправка по кнопке Enter
         userInput.addEventListener('keydown', (e) => { 
             if(e.key === 'Enter' && !e.shiftKey) { 
                 e.preventDefault(); 
-                sendMessage(); 
+                window.sendMessage(); 
             } 
         });
     </script>
