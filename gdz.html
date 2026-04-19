@@ -110,7 +110,6 @@
         let currentImagePart = null;
         let currentImageSrc = null;
 
-        // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ ---
         window.fillInput = (text) => {
             userInput.value = text;
             userInput.focus();
@@ -125,18 +124,16 @@
 
         window.startVoice = () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return alert("Микрофон ца болх бо хьан браузерехь.");
+            if (!SpeechRecognition) return alert("Браузер поддерживает микрофон дац.");
             
             const recognition = new SpeechRecognition();
             recognition.lang = 'ru-RU';
             recognition.onstart = () => {
                 document.getElementById('micBtn').classList.add('text-red-500', 'animate-pulse');
-                userInput.placeholder = "ЛадугIуш ду...";
             };
             recognition.onresult = (e) => userInput.value += e.results[0][0].transcript;
             recognition.onend = () => {
                 document.getElementById('micBtn').classList.remove('text-red-500', 'animate-pulse');
-                userInput.placeholder = "Хазза язъе...";
             };
             recognition.start();
         };
@@ -147,11 +144,10 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 currentImageSrc = ev.target.result;
-                // Сохраняем в формате, который понимает API
                 currentImagePart = { 
-                    inlineData: { 
+                    inline_data: { 
                         data: currentImageSrc.split(',')[1], 
-                        mimeType: file.type 
+                        mime_type: file.type 
                     } 
                 };
                 document.getElementById('previewImg').src = currentImageSrc;
@@ -171,14 +167,11 @@
             if (text) userHtml += `<div>${text}</div>`;
             appendMessage('user', userHtml);
 
-            // Собираем запрос
-            const promptText = text || "Дийца кху суртан тIехь дерг";
+            const promptText = text || "Суьрта тIехь дерг дийца";
             const histText = text || "Сурт";
             
             const requestParts = [{ text: promptText }];
-            if (currentImagePart) {
-                requestParts.push(currentImagePart);
-            }
+            if (currentImagePart) requestParts.push(currentImagePart);
 
             userInput.value = '';
             window.removeImage();
@@ -186,19 +179,16 @@
             const aiWrapper = appendMessage('ai', '<span class="loading-dots">Ойла йо</span>');
 
             try {
-                // ПРЯМОЙ ЗАПРОС К API GOOGLE (ЖЕЛЕЗОБЕТОННЫЙ СПОСОБ)
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                // ИСПОЛЬЗУЕМ СТАБИЛЬНУЮ ВЕРСИЮ v1 ВМЕСТО v1beta
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        systemInstruction: {
-                            parts: [{ text: "Хьо Ghost AI ю. Нохчийн дешархошна гIо деш ю хьо. Массо хаттарна жоп НОХЧИЙН МАТТАХЬ ло. Математика, Истори, Оьрсийн мотт - и дерриге хьуна хаьа. Будь вежливой и умной." }]
-                        },
                         contents: [{
-                            role: "user",
-                            parts: requestParts
+                            parts: [
+                                { text: "System instruction: Ты Ghost AI. Помогаешь чеченским школьникам. Отвечай ТОЛЬКО на чеченском языке. Если не знаешь перевода термина, используй общепринятый, но весь контекст — на чеченском." },
+                                ...requestParts
+                            ]
                         }]
                     })
                 });
@@ -206,18 +196,15 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error?.message || "Неизвестная ошибка API");
+                    throw new Error(data.error?.message || "API гIалат");
                 }
 
-                // Достаем текст из ответа
                 const responseText = data.candidates[0].content.parts[0].text;
-                
                 renderAIResponse(aiWrapper, responseText);
                 saveHistory(histText);
 
             } catch (err) {
                 aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500 font-medium">ГIалат: ${err.message}</span>`;
-                console.error(err);
             }
         };
 
@@ -238,11 +225,11 @@
             content.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
             
             const copyBtn = document.createElement('button');
-            copyBtn.className = 'mt-2 text-gray-400 hover:text-blue-600 text-[10px] uppercase tracking-tighter transition flex items-center gap-1';
+            copyBtn.className = 'mt-2 text-gray-400 hover:text-blue-600 text-[10px] uppercase transition flex items-center gap-1';
             copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Копировать';
             copyBtn.onclick = () => {
                 navigator.clipboard.writeText(text);
-                copyBtn.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Скопировано';
+                copyBtn.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Схьаэцна!';
                 setTimeout(() => copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Копировать', 2000);
             };
             content.after(copyBtn);
