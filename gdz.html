@@ -55,9 +55,9 @@
             <div id="welcome-view" class="flex flex-col items-center justify-center h-full mt-[-50px]">
                 <h1 class="text-4xl md:text-5xl font-medium gemini-gradient mb-10 text-center">Де дика дойла, Ghost AI ю хьоьца</h1>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full">
-                    <div onclick="window.fillInput('Математика гIо де')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition border border-transparent hover:border-blue-200">Математика</div>
-                    <div onclick="window.fillInput('Сочинение язъе «Сан Даймохк»')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition border border-transparent hover:border-blue-200">Сочинение</div>
-                    <div onclick="window.fillInput('Истори дийца')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition border border-transparent hover:border-blue-200">Истори</div>
+                    <div onclick="window.fillInput('Математика гIо де')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Математика</div>
+                    <div onclick="window.fillInput('Сочинение язъе «Сан Даймохк»')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Сочинение</div>
+                    <div onclick="window.fillInput('Истори дийца')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Истори</div>
                 </div>
             </div>
             <div id="messages-list" class="space-y-8 flex flex-col"></div>
@@ -66,7 +66,6 @@
         <div class="p-4 bg-white">
             <div class="max-w-3xl mx-auto relative">
                 <div class="bg-[#f0f4f9] rounded-[28px] p-2 focus-within:bg-white focus-within:shadow-xl border-2 border-transparent focus-within:border-blue-100 transition-all flex flex-col">
-                    
                     <div id="imagePreviewContainer" class="hidden px-3 pb-2 pt-1">
                         <div class="relative inline-block">
                             <img id="previewImg" src="" class="h-20 w-20 object-cover rounded-xl border-2 border-white shadow-md">
@@ -75,16 +74,14 @@
                             </button>
                         </div>
                     </div>
-
                     <textarea id="userInput" rows="1" class="w-full bg-transparent border-none focus:ring-0 p-3 resize-none text-gray-800 text-lg" placeholder="Хазза язъе..."></textarea>
-                    
                     <div class="flex justify-between items-center px-2 pb-1">
                         <div class="flex gap-2">
-                            <label class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer text-gray-500 transition">
+                            <label class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer text-gray-500">
                                 <i class="fa-regular fa-image text-xl"></i>
                                 <input type="file" id="imageInput" class="hidden" accept="image/*">
                             </label>
-                            <button id="micBtn" onclick="window.startVoice()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition">
+                            <button id="micBtn" onclick="window.startVoice()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500">
                                 <i class="fa-solid fa-microphone text-xl"></i>
                             </button>
                         </div>
@@ -93,49 +90,39 @@
                         </button>
                     </div>
                 </div>
-                <p class="text-[10px] text-center text-gray-400 mt-3 uppercase tracking-widest">Ghost AI — Нохчийн школьникашна гIоьнча</p>
             </div>
         </div>
     </main>
 
     <script>
         const API_KEY = "AIzaSyB3O_Vj1iZ12Z7JHrc1_c2eCZ6NwlJOAGI";
+        // Пробуем несколько вариантов названия модели для надежности
+        const MODEL_NAMES = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
 
         const userInput = document.getElementById('userInput');
         const messagesList = document.getElementById('messages-list');
         const welcomeView = document.getElementById('welcome-view');
         const imageInput = document.getElementById('imageInput');
-        const historyList = document.getElementById('history-list');
 
         let currentImagePart = null;
         let currentImageSrc = null;
 
-        window.fillInput = (text) => {
-            userInput.value = text;
-            userInput.focus();
-        };
+        // Отладочная функция: выводит список доступных моделей в консоль
+        async function listAvailableModels() {
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+                const data = await res.json();
+                console.log("Доступные тебе модели:", data.models?.map(m => m.name));
+            } catch (e) { console.error("Не удалось получить список моделей", e); }
+        }
+        listAvailableModels();
 
+        window.fillInput = (t) => { userInput.value = t; userInput.focus(); };
         window.removeImage = () => {
             currentImagePart = null;
             currentImageSrc = null;
             imageInput.value = '';
             document.getElementById('imagePreviewContainer').classList.add('hidden');
-        };
-
-        window.startVoice = () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return alert("Браузер поддерживает микрофон дац.");
-            
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'ru-RU';
-            recognition.onstart = () => {
-                document.getElementById('micBtn').classList.add('text-red-500', 'animate-pulse');
-            };
-            recognition.onresult = (e) => userInput.value += e.results[0][0].transcript;
-            recognition.onend = () => {
-                document.getElementById('micBtn').classList.remove('text-red-500', 'animate-pulse');
-            };
-            recognition.start();
         };
 
         imageInput.addEventListener('change', (e) => {
@@ -144,12 +131,7 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 currentImageSrc = ev.target.result;
-                currentImagePart = { 
-                    inline_data: { 
-                        data: currentImageSrc.split(',')[1], 
-                        mime_type: file.type 
-                    } 
-                };
+                currentImagePart = { inline_data: { data: currentImageSrc.split(',')[1], mime_type: file.type } };
                 document.getElementById('previewImg').src = currentImageSrc;
                 document.getElementById('imagePreviewContainer').classList.remove('hidden');
             };
@@ -161,50 +143,44 @@
             if (!text && !currentImagePart) return;
 
             welcomeView.classList.add('hidden');
-            
-            let userHtml = '';
-            if (currentImageSrc) userHtml += `<img src="${currentImageSrc}" class="chat-image">`;
-            if (text) userHtml += `<div>${text}</div>`;
+            let userHtml = currentImageSrc ? `<img src="${currentImageSrc}" class="chat-image">` : '';
+            userHtml += `<div>${text}</div>`;
             appendMessage('user', userHtml);
 
-            const promptText = text || "Суьрта тIехь дерг дийца";
-            const histText = text || "Сурт";
-            
-            const requestParts = [{ text: promptText }];
+            const requestParts = [{ text: "Ты Ghost AI. Отвечай ТОЛЬКО на чеченском языке. Помогай школьникам. Текст запроса: " + (text || "Сурт") }];
             if (currentImagePart) requestParts.push(currentImagePart);
 
             userInput.value = '';
             window.removeImage();
-
             const aiWrapper = appendMessage('ai', '<span class="loading-dots">Ойла йо</span>');
 
-            try {
-                // ИСПОЛЬЗУЕМ СТАБИЛЬНУЮ ВЕРСИЮ v1 ВМЕСТО v1beta
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: "System instruction: Ты Ghost AI. Помогаешь чеченским школьникам. Отвечай ТОЛЬКО на чеченском языке. Если не знаешь перевода термина, используй общепринятый, но весь контекст — на чеченском." },
-                                ...requestParts
-                            ]
-                        }]
-                    })
-                });
+            // Пробуем модели по очереди, пока одна не сработает
+            let success = false;
+            for (let modelName of MODEL_NAMES) {
+                if (success) break;
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: requestParts }] })
+                    });
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error?.message || "API гIалат");
+                    const data = await response.json();
+                    if (response.ok && data.candidates) {
+                        const aiText = data.candidates[0].content.parts[0].text;
+                        renderAIResponse(aiWrapper, aiText);
+                        success = true;
+                    } else if (response.status !== 404) {
+                        // Если ошибка не 404, а что-то другое (например, лимит), выводим её сразу
+                        throw new Error(data.error?.message || "Ошибка API");
+                    }
+                } catch (err) {
+                    console.warn(`Модель ${modelName} не сработала, пробую следующую...`);
                 }
+            }
 
-                const responseText = data.candidates[0].content.parts[0].text;
-                renderAIResponse(aiWrapper, responseText);
-                saveHistory(histText);
-
-            } catch (err) {
-                aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500 font-medium">ГIалат: ${err.message}</span>`;
+            if (!success) {
+                aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500 text-sm">ГIалат: Модель ца карий. Хьажа консоль (F12) список моделей.</span>`;
             }
         };
 
@@ -212,7 +188,7 @@
             const div = document.createElement('div');
             div.className = role === 'user' ? 'flex justify-end' : 'ai-msg-container flex gap-4';
             div.innerHTML = role === 'user' 
-                ? `<div class="user-msg shadow-md">${content}</div>`
+                ? `<div class="user-msg shadow-sm">${content}</div>`
                 : `<div class="ghost-avatar flex-shrink-0 shadow-lg">G</div><div class="flex-1 overflow-hidden"><div class="prose text-gray-800 leading-relaxed break-words">${content}</div></div>`;
             messagesList.appendChild(div);
             const chat = document.getElementById('chat-container');
@@ -223,45 +199,18 @@
         function renderAIResponse(wrapper, text) {
             const content = wrapper.querySelector('.prose');
             content.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-            
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'mt-2 text-gray-400 hover:text-blue-600 text-[10px] uppercase transition flex items-center gap-1';
-            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Копировать';
-            copyBtn.onclick = () => {
-                navigator.clipboard.writeText(text);
-                copyBtn.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Схьаэцна!';
-                setTimeout(() => copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> Копировать', 2000);
-            };
-            content.after(copyBtn);
         }
 
-        function saveHistory(t) {
-            let h = JSON.parse(localStorage.getItem('ghost_h') || '[]');
-            if(!h.includes(t)) {
-                h.unshift(t);
-                localStorage.setItem('ghost_h', JSON.stringify(h.slice(0, 10)));
-                loadHistory();
-            }
-        }
-
-        function loadHistory() {
-            historyList.innerHTML = '';
-            JSON.parse(localStorage.getItem('ghost_h') || '[]').forEach(t => {
-                const d = document.createElement('div');
-                d.className = 'p-3 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-xl cursor-pointer truncate transition';
-                d.innerHTML = `• ${t}`;
-                d.onclick = () => { userInput.value = t; window.sendMessage(); };
-                historyList.appendChild(d);
-            });
-        }
-
-        userInput.addEventListener('keydown', (e) => { 
-            if(e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                window.sendMessage(); 
-            } 
-        });
-        window.onload = loadHistory;
+        window.startVoice = () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("Браузеро микрофон ца лоцу.");
+            const rec = new SpeechRecognition();
+            rec.lang = 'ru-RU';
+            rec.onstart = () => document.getElementById('micBtn').classList.add('text-red-500');
+            rec.onresult = (e) => userInput.value += e.results[0][0].transcript;
+            rec.onend = () => document.getElementById('micBtn').classList.remove('text-red-500');
+            rec.start();
+        };
     </script>
 </body>
 </html>
