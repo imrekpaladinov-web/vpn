@@ -36,9 +36,9 @@
             <i class="fa-solid fa-plus text-gray-600"></i>
             <span class="text-sm font-medium">Керла чат</span>
         </button>
-        <div class="flex-1 overflow-y-auto">
-            <p class="text-xs font-semibold text-gray-400 mb-4 px-2 uppercase tracking-widest">История</p>
-            <div id="history-list" class="space-y-1"></div>
+        <div class="flex-1 overflow-y-auto text-xs text-gray-400 px-2 uppercase tracking-widest">
+            История
+            <div id="history-list" class="mt-4 space-y-1"></div>
         </div>
     </aside>
 
@@ -96,8 +96,7 @@
 
     <script>
         const API_KEY = "AIzaSyB3O_Vj1iZ12Z7JHrc1_c2eCZ6NwlJOAGI";
-        // Пробуем несколько вариантов названия модели для надежности
-        const MODEL_NAMES = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+        const MODEL_NAME = "gemini-1.5-flash";
 
         const userInput = document.getElementById('userInput');
         const messagesList = document.getElementById('messages-list');
@@ -107,17 +106,8 @@
         let currentImagePart = null;
         let currentImageSrc = null;
 
-        // Отладочная функция: выводит список доступных моделей в консоль
-        async function listAvailableModels() {
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-                const data = await res.json();
-                console.log("Доступные тебе модели:", data.models?.map(m => m.name));
-            } catch (e) { console.error("Не удалось получить список моделей", e); }
-        }
-        listAvailableModels();
-
         window.fillInput = (t) => { userInput.value = t; userInput.focus(); };
+        
         window.removeImage = () => {
             currentImagePart = null;
             currentImageSrc = null;
@@ -144,43 +134,40 @@
 
             welcomeView.classList.add('hidden');
             let userHtml = currentImageSrc ? `<img src="${currentImageSrc}" class="chat-image">` : '';
-            userHtml += `<div>${text}</div>`;
+            if (text) userHtml += `<div>${text}</div>`;
             appendMessage('user', userHtml);
 
-            const requestParts = [{ text: "Ты Ghost AI. Отвечай ТОЛЬКО на чеченском языке. Помогай школьникам. Текст запроса: " + (text || "Сурт") }];
-            if (currentImagePart) requestParts.push(currentImagePart);
+            // Собираем части сообщения
+            const parts = [{ text: "System: Ты Ghost AI. Отвечай ТОЛЬКО на чеченском языке. Помогай школьникам с уроками. Запрос: " + (text || "Суьрта тIехь дерг дийца") }];
+            if (currentImagePart) parts.push(currentImagePart);
 
             userInput.value = '';
             window.removeImage();
             const aiWrapper = appendMessage('ai', '<span class="loading-dots">Ойла йо</span>');
 
-            // Пробуем модели по очереди, пока одна не сработает
-            let success = false;
-            for (let modelName of MODEL_NAMES) {
-                if (success) break;
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: requestParts }] })
-                    });
+            try {
+                // Прямой запрос к v1beta с правильной структурой ролей
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: parts }]
+                    })
+                });
 
-                    const data = await response.json();
-                    if (response.ok && data.candidates) {
-                        const aiText = data.candidates[0].content.parts[0].text;
-                        renderAIResponse(aiWrapper, aiText);
-                        success = true;
-                    } else if (response.status !== 404) {
-                        // Если ошибка не 404, а что-то другое (например, лимит), выводим её сразу
-                        throw new Error(data.error?.message || "Ошибка API");
-                    }
-                } catch (err) {
-                    console.warn(`Модель ${modelName} не сработала, пробую следующую...`);
+                const data = await response.json();
+
+                if (response.ok && data.candidates && data.candidates[0].content) {
+                    const aiText = data.candidates[0].content.parts[0].text;
+                    renderAIResponse(aiWrapper, aiText);
+                } else {
+                    const msg = data.error ? data.error.message : "API Error";
+                    // Если на мобилке ошибка - выводим её в алерте
+                    alert("ГIалат: " + msg);
+                    throw new Error(msg);
                 }
-            }
-
-            if (!success) {
-                aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500 text-sm">ГIалат: Модель ца карий. Хьажа консоль (F12) список моделей.</span>`;
+            } catch (err) {
+                aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500 text-sm">ГIалат: ${err.message}</span>`;
             }
         };
 
@@ -192,12 +179,13 @@
                 : `<div class="ghost-avatar flex-shrink-0 shadow-lg">G</div><div class="flex-1 overflow-hidden"><div class="prose text-gray-800 leading-relaxed break-words">${content}</div></div>`;
             messagesList.appendChild(div);
             const chat = document.getElementById('chat-container');
-            chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+            chat.scrollTop = chat.scrollHeight;
             return div;
         }
 
         function renderAIResponse(wrapper, text) {
             const content = wrapper.querySelector('.prose');
+            // Простая замена разметки на жирный текст и переносы
             content.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
         }
 
@@ -211,6 +199,14 @@
             rec.onend = () => document.getElementById('micBtn').classList.remove('text-red-500');
             rec.start();
         };
+
+        // Автоматический фокус и отправка по Enter
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                window.sendMessage();
+            }
+        });
     </script>
 </body>
 </html>
