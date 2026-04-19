@@ -3,64 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost AI — Нохчийн ГIоьнча</title>
+    <title>Ghost AI — ГДЗ Нохчийн Маттахь</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .message-user { background-color: #f0f4f9; border-radius: 1.5rem; }
-        .gemini-gradient { background: linear-gradient(74deg, #4285f4 0%, #9b72cb 20%, #d96570 40%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&display=swap');
+        body { font-family: 'Google Sans', sans-serif; background-color: #ffffff; }
+        .sidebar { background-color: #f0f4f9; transition: all 0.3s; }
+        .gemini-gradient {
+            background: linear-gradient(74deg, #4285f4 0%, #9b72cb 25%, #d96570 50%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-msg { background-color: #f0f4f9; border-radius: 1.5rem; padding: 12px 20px; max-width: 85%; align-self: flex-end; }
+        .ai-msg-container { max-width: 800px; width: 100%; margin: 0 auto; }
+        .ghost-avatar {
+            background: linear-gradient(135deg, #000 0%, #434343 100%);
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;
+        }
+        #chat-container::-webkit-scrollbar { width: 8px; }
+        #chat-container::-webkit-scrollbar-thumb { background: #dfe3e7; border-radius: 10px; }
+        .loading-dots:after { content: '.'; animation: dots 1.5s steps(5, end) infinite;}
+        @keyframes dots { 0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 40% { color: #666; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); } 60% { text-shadow: .25em 0 0 #666, .5em 0 0 rgba(0,0,0,0); } 80%, 100% { text-shadow: .25em 0 0 #666, .5em 0 0 #666; } }
     </style>
 </head>
-<body class="bg-white h-screen flex overflow-hidden font-sans text-gray-800">
+<body class="flex h-screen overflow-hidden">
 
-    <aside class="w-72 bg-[#f0f4f9] p-4 flex-col hidden md:flex">
-        <button class="flex items-center gap-3 bg-[#e6eaf1] hover:bg-gray-200 p-3 rounded-full mb-8 transition">
-            <i class="fa-solid fa-plus"></i>
+    <aside class="sidebar w-64 flex-col hidden md:flex p-4">
+        <button onclick="location.reload()" class="flex items-center gap-3 bg-[#e6eaf1] hover:bg-gray-200 p-4 rounded-2xl mb-8 transition w-full">
+            <i class="fa-solid fa-plus text-gray-600"></i>
             <span class="text-sm font-medium">Керла чат</span>
         </button>
         <div class="flex-1 overflow-y-auto">
-            <p class="text-xs font-semibold text-gray-500 mb-4 px-2">ТIаьххьарниш (История)</p>
-            <div id="chat-history" class="space-y-1">
-                </div>
+            <p class="text-xs font-semibold text-gray-500 mb-4 px-2 uppercase tracking-wider">История</p>
+            <div id="history-list" class="space-y-1"></div>
         </div>
     </aside>
 
     <main class="flex-1 flex flex-col relative">
-        <header class="p-4 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="text-xl font-medium tracking-tight">Ghost AI</span>
-                <span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded">Pro</span>
+        <header class="p-4 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <span class="text-xl font-medium tracking-tight text-gray-700">Ghost AI</span>
+                <span class="text-[10px] bg-black text-white px-2 py-0.5 rounded-full font-bold">PRO</span>
             </div>
-            <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs">U</div>
+            <div class="flex items-center gap-4">
+                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs">U</div>
+            </div>
         </header>
 
-        <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-24 py-8 space-y-8">
-            <div class="max-w-3xl mx-auto text-center mt-20" id="welcome-screen">
-                <h1 class="text-5xl font-medium gemini-gradient mb-8">Де дика дойла!</h1>
-                <p class="text-gray-500">Муха гIо дан деза хьуна тахана?</p>
+        <div id="chat-container" class="flex-1 overflow-y-auto px-4 md:px-10 py-6">
+            <div id="welcome-view" class="flex flex-col items-center justify-center h-full mt-[-50px]">
+                <h1 class="text-4xl md:text-5xl font-medium gemini-gradient mb-10 text-center">Де дика дойла, со Ghost AI ю</h1>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full">
+                    <div onclick="fillInput('Математика: 5 класс, 125-гIа номер йе хьуна')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Математика гIо де</div>
+                    <div onclick="fillInput('Нохчийн мотт: Сочинение язъе «Сан Даймохк»')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Сочинение язъе</div>
+                    <div onclick="fillInput('Истори: Шайх Мансурах лаьцна дийца')" class="p-4 bg-[#f0f4f9] rounded-xl text-sm hover:bg-gray-200 cursor-pointer transition">Истори дийца</div>
+                </div>
             </div>
+            <div id="messages-list" class="space-y-8 flex flex-col"></div>
         </div>
 
-        <div class="p-4 md:px-24 pb-8">
-            <div class="max-w-3xl mx-auto">
-                <div class="bg-[#f0f4f9] rounded-3xl p-2 focus-within:bg-white focus-within:shadow-md transition">
-                    <textarea id="userInput" rows="1" class="w-full bg-transparent border-none focus:ring-0 p-3 resize-none" placeholder="Язъе кхузахь..."></textarea>
-                    <div class="flex justify-between items-center px-3 pb-2">
-                        <div class="flex gap-4 text-gray-600">
-                            <label class="cursor-pointer hover:text-blue-600 transition">
+        <div class="p-4 bg-white">
+            <div class="max-w-3xl mx-auto relative">
+                <div class="bg-[#f0f4f9] rounded-[28px] p-3 focus-within:bg-white focus-within:shadow-lg border border-transparent focus-within:border-gray-200 transition-all">
+                    <textarea id="userInput" rows="1" class="w-full bg-transparent border-none focus:ring-0 p-3 pr-20 resize-none text-gray-800" placeholder="Хазза язъе кхузахь хьайна оьшург..."></textarea>
+                    
+                    <div class="flex justify-between items-center px-2 pt-2">
+                        <div class="flex gap-4">
+                            <label class="cursor-pointer text-gray-500 hover:text-blue-600 transition">
                                 <i class="fa-regular fa-image text-xl"></i>
                                 <input type="file" id="imageInput" class="hidden" accept="image/*">
                             </label>
-                            <i class="fa-solid fa-microphone text-xl cursor-pointer hover:text-blue-600"></i>
                         </div>
-                        <button onclick="handleSend()" class="text-blue-600 hover:scale-110 transition">
-                            <i class="fa-solid fa-paper-plane text-xl"></i>
+                        <button onclick="sendMessage()" id="sendBtn" class="bg-white p-2 px-4 rounded-full shadow-sm hover:bg-gray-100 text-blue-600 transition">
+                            <i class="fa-solid fa-paper-plane text-lg"></i>
                         </button>
                     </div>
                 </div>
-                <p class="text-[11px] text-center text-gray-500 mt-3">Ghost AI может ошибаться. Проверяйте важную информацию.</p>
+                <p class="text-[10px] text-center text-gray-400 mt-3 uppercase tracking-tighter italic">Ghost AI — Кхуо гIалат дан тарло. Тергам бе.</p>
             </div>
         </div>
     </main>
@@ -68,83 +89,112 @@
     <script type="module">
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-        const API_KEY = "ВАШ_API_KEY"; 
+        const API_KEY = "AIzaSyB3O_Vj1iZ12Z7JHrc1_c2eCZ6NwlJOAGI";
         const genAI = new GoogleGenerativeAI(API_KEY);
 
-        const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('userInput');
-        const welcomeScreen = document.getElementById('welcome-screen');
+        const messagesList = document.getElementById('messages-list');
+        const welcomeView = document.getElementById('welcome-view');
+        const historyList = document.getElementById('history-list');
 
-        // Функция копирования текста
-        window.copyText = (btn) => {
-            const text = btn.parentElement.previousElementSibling.innerText;
-            navigator.clipboard.writeText(text);
-            btn.innerHTML = '<i class="fa-solid fa-check text-green-600"></i>';
-            setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('ghost_history') || '[]');
+            saved.reverse().forEach(item => addHistoryUI(item));
         };
 
-        async function handleSend() {
+        window.fillInput = (text) => {
+            userInput.value = text;
+            userInput.focus();
+        };
+
+        async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            if (welcomeScreen) welcomeScreen.remove();
-
-            // Добавляем сообщение пользователя
+            welcomeView.classList.add('hidden');
             appendMessage('user', text);
             userInput.value = '';
-
-            // Эффект загрузки (как у Gemini)
-            const aiMsgDiv = appendMessage('ai', '...');
             
+            const aiWrapper = appendMessage('ai', '<span class="loading-dots">Ойла йо</span>');
+
             try {
                 const model = genAI.getGenerativeModel({ 
                     model: "gemini-1.5-flash",
-                    systemInstruction: "Твое имя - Ghost AI. Ты - продвинутый интеллект, созданный для помощи чеченским школьникам. Ты всегда отвечаешь на чеченском языке, помогаешь с ГДЗ, математикой и историей."
+                    systemInstruction: "Ты - Ghost AI. Ты помогаешь чеченским школьникам с ГДЗ и уроками. Отвечай ВСЕГДА на чеченском языке. Будь четким, умным и дружелюбным."
                 });
 
                 const result = await model.generateContent(text);
-                const responseText = result.response.text();
+                const response = await result.response.text();
                 
-                aiMsgDiv.innerHTML = `
-                    <div class="flex gap-4 max-w-3xl mx-auto">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex-shrink-0 mt-1"></div>
-                        <div class="flex-1">
-                            <div class="prose prose-slate">${responseText}</div>
-                            <div class="flex gap-3 mt-4 text-gray-400">
-                                <button onclick="copyText(this)" class="hover:text-gray-600"><i class="fa-regular fa-copy"></i></button>
-                                <button class="hover:text-gray-600"><i class="fa-regular fa-thumbs-up"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                renderAIResponse(aiWrapper, response);
+                saveToHistory(text);
+
             } catch (error) {
-                aiMsgDiv.innerText = "ГIалат девлла: " + error.message;
+                aiWrapper.querySelector('.prose').innerHTML = `<span class="text-red-500">ГIалат девлла: ${error.message}</span>`;
             }
         }
 
-        function appendMessage(role, text) {
-            const div = document.createElement('div');
-            div.className = role === 'user' ? 'flex justify-end mb-6' : 'mb-6';
+        function appendMessage(role, content) {
+            const wrapper = document.createElement('div');
+            wrapper.className = role === 'user' ? 'flex justify-end w-full' : 'ai-msg-container flex gap-4 w-full';
             
             if (role === 'user') {
-                div.innerHTML = `<div class="message-user px-5 py-3 max-w-[80%]">${text}</div>`;
+                wrapper.innerHTML = `<div class="user-msg shadow-sm">${content}</div>`;
             } else {
-                div.innerHTML = `<div class="flex gap-4 max-w-3xl mx-auto animate-pulse">Бот ойла йо...</div>`;
+                wrapper.innerHTML = `
+                    <div class="ghost-avatar flex-shrink-0 mt-1 shadow-md">G</div>
+                    <div class="flex-1">
+                        <div class="prose prose-blue text-gray-800 leading-relaxed max-w-none">${content}</div>
+                    </div>`;
             }
-            
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return div;
+            messagesList.appendChild(wrapper);
+            document.getElementById('chat-container').scrollTo({top: messagesList.scrollHeight, behavior: 'smooth'});
+            return wrapper;
         }
 
-        // Слушатель Enter
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+        function renderAIResponse(container, text) {
+            const contentDiv = container.querySelector('.prose');
+            contentDiv.innerText = text;
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'flex gap-4 mt-3 text-gray-400 text-sm';
+            actionDiv.innerHTML = `
+                <button onclick="copyThis(this)" class="hover:text-blue-600 transition"><i class="fa-regular fa-copy"></i></button>
+                <button class="hover:text-green-600 transition"><i class="fa-regular fa-thumbs-up"></i></button>
+            `;
+            contentDiv.after(actionDiv);
+        }
+
+        window.copyThis = (btn) => {
+            const text = btn.closest('.ai-msg-container').querySelector('.prose').innerText;
+            navigator.clipboard.writeText(text);
+            btn.innerHTML = '<i class="fa-solid fa-check text-green-500"></i>';
+            setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i>', 2000);
+        };
+
+        function saveToHistory(q) {
+            let history = JSON.parse(localStorage.getItem('ghost_history') || '[]');
+            if(!history.includes(q)) {
+                history.unshift(q);
+                history = history.slice(0, 15);
+                localStorage.setItem('ghost_history', JSON.stringify(history));
+                addHistoryUI(q);
             }
+        }
+
+        function addHistoryUI(text) {
+            const item = document.createElement('div');
+            item.className = 'p-3 text-sm text-gray-600 hover:bg-gray-200 rounded-xl cursor-pointer truncate transition mb-1';
+            item.innerHTML = `<i class="fa-regular fa-message mr-2 opacity-50"></i> ${text}`;
+            item.onclick = () => { userInput.value = text; sendMessage(); };
+            historyList.prepend(item);
+        }
+
+        userInput.addEventListener('keydown', (e) => { 
+            if(e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                sendMessage(); 
+            } 
         });
     </script>
 </body>
-  </html>
-
+</html>
