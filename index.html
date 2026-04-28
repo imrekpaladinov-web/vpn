@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Link | Free SUB</title>
+    <style>
+        :root {
+            --primary-yellow: #ffcc00;
+            --dark-bg: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-white: #ffffff;
+            --shadow-glow: 0 0 15px rgba(255, 204, 0, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-white);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Анимированный фон (необязательно, для красоты) */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,204,0,0.05) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        header {
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary-yellow);
+            text-shadow: var(--shadow-glow);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+            to { text-shadow: 0 0 25px rgba(255, 204, 0, 0.9), 0 0 10px rgba(255, 255, 255, 0.3); }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 204, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .btn {
+            display: block;
+            padding: 18px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-decoration: none;
+            color: var(--dark-bg);
+            background-color: var(--primary-yellow);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-happ {
+            background-color: transparent;
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+        }
+
+        .btn-happ:hover {
+            background-color: var(--primary-yellow);
+            color: var(--dark-bg);
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        .emoji {
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Ghost Link | Free SUB ⭐</h1>
+    </header>
+
+    <div class="container">
+        <div class="btn-group">
+            <a href="https://vpnone.ru/connect/?url=v2raytun%3A%2F%2Fimport%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt" class="btn">
+                Импорт для V2rayTun <span class="emoji">🚀</span>
+            </a>
+            
+            <a href="https://vpnone.ru/connect/?url=happ%3A%2F%2Fadd%2Fhttps://raw.githubusercontent.com/imrekpaladinov-web/vpn/main/vpn.txt" class="btn btn-happ">
+                Импорт для Happ <span class="emoji">📱</span>
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Ghost Link Project
+    </footer>
+
+</body>
+</html>
+
