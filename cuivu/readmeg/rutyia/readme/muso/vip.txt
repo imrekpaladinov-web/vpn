@@ -1,3 +1,7 @@
+#profile-title: Ghost Link | VIP ⚡
+#profile-update-interval: 1
+#subscription-userinfo: upload=0; download=0; total=1099511627776; expire=0
+#announce:Если не работает Обновляйте подписку 🔄 Поддержкка: @svumt
 vless://cff47c9e-a16d-4ff5-97de-650bb23327ec@nv01.myxavpn.com:443?security=reality&encryption=none&echfq=none&pbk=OCLtjVdRxsou3429LRfjkDYgiAPs24TSgSeFZpChCEw&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=nv01.myxavpn.com&sid=d67ec5a8fc40ebea#%F0%9F%87%B3%F0%9F%87%B4+Ghost+Link+%7C+VIP+%E2%9A%A1
 vless://cff47c9e-a16d-4ff5-97de-650bb23327ec@nv01.myxavpn.com:443?security=reality&encryption=none&echfq=none&pbk=OCLtjVdRxsou3429LRfjkDYgiAPs24TSgSeFZpChCEw&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=nv01.myxavpn.com&sid=d67ec5a8fc40ebea#%F0%9F%87%B3%F0%9F%87%B4+Ghost+Link+%7C+VIP+%E2%9A%A1
 vless://cff47c9e-a16d-4ff5-97de-650bb23327ec@tur.myxavpn.com:443?security=reality&encryption=none&echfq=none&pbk=OCLtjVdRxsou3429LRfjkDYgiAPs24TSgSeFZpChCEw&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=tur.myxavpn.com&sid=d67ec5a8fc40ebea#%F0%9F%87%B9%F0%9F%87%B7+Ghost+Link+%7C+VIP+%E2%9A%A1
