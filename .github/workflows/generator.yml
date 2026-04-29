@@ -1,0 +1,45 @@
+name: VPN Sub Generator
+on:
+  push:
+    paths:
+      - 'tasks/**' # Робот просыпается, когда ты добавляешь файл в папку tasks
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate Subscriptions
+        run: |
+          # Ищем файлы в папке tasks
+          for file in tasks/*.txt; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file" .txt)
+              # Разбиваем имя файла на ID и Пароль
+              USER_ID=$(echo $filename | cut -d'-' -f1)
+              USER_PASS=$(echo $filename | cut -d'-' -f2)
+              
+              echo "Обработка ID: $USER_ID с паролем: $USER_PASS"
+              
+              # 1. Читаем шаблон и заменяем {{ID}} на реальный ID
+              sed "s/{{ID}}/$USER_ID/g" cuivu/readmeg/rutyia/readme/muso/vip.txt > database/subs/GH-$USER_ID.txt
+              
+              # 2. Добавляем пароль в базу vip.html (простая замена в JS объекте)
+              # Мы ищем строку с комментарием БАЗА ДАННЫХ и вставляем после неё
+              sed -i "/const db = {/a \            \"$USER_PASS\": \"$USER_ID\"," vip.html
+              
+              # Удаляем файл задачи, чтобы не обрабатывать дважды
+              rm "$file"
+            fi
+          done
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "Ghost-Robot"
+          git config --global user.email "robot@ghostlink.vpn"
+          git add database/subs/*.txt vip.html tasks/*.txt
+          git commit -m "Авто-создание подписки для $USER_ID" || exit 0
+          git push
+          
