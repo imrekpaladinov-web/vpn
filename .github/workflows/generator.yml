@@ -1,45 +1,64 @@
-name: VPN Sub Generator
+name: Ghost Sub Robot
 on:
   push:
     paths:
-      - 'tasks/**' # Робот просыпается, когда ты добавляешь файл в папку tasks
+      - 'tasks/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Даем права на запись прямо в коде
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Обновил версию для стабильности
 
-      - name: Generate Subscriptions
+      - name: Generate Sub for Client
         run: |
-          # Ищем файлы в папке tasks
+          # Создаем папки, если их нет
+          mkdir -p database/subs
+          mkdir -p tasks
+          
+          # Проверяем, есть ли файлы в tasks
+          if [ -z "$(ls -A tasks/*.txt 2>/dev/null)" ]; then
+            echo "Нет новых задач. Выходим."
+            exit 0
+          fi
+
           for file in tasks/*.txt; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file" .txt)
-              # Разбиваем имя файла на ID и Пароль
-              USER_ID=$(echo $filename | cut -d'-' -f1)
-              USER_PASS=$(echo $filename | cut -d'-' -f2)
-              
-              echo "Обработка ID: $USER_ID с паролем: $USER_PASS"
-              
-              # 1. Читаем шаблон и заменяем {{ID}} на реальный ID
-              sed "s/{{ID}}/$USER_ID/g" cuivu/readmeg/rutyia/readme/muso/vip.txt > database/subs/GH-$USER_ID.txt
-              
-              # 2. Добавляем пароль в базу vip.html (простая замена в JS объекте)
-              # Мы ищем строку с комментарием БАЗА ДАННЫХ и вставляем после неё
-              sed -i "/const db = {/a \            \"$USER_PASS\": \"$USER_ID\"," vip.html
-              
-              # Удаляем файл задачи, чтобы не обрабатывать дважды
-              rm "$file"
+            filename=$(basename "$file" .txt)
+            
+            # Если в имени файла нет дефиса, пропускаем
+            if [[ "$filename" != *-* ]]; then continue; fi
+            
+            USER_ID=$(echo $filename | cut -d'-' -f1)
+            USER_PASS=$(echo $filename | cut -d'-' -f2)
+            
+            echo "Обработка ID: $USER_ID"
+            
+            # Проверяем наличие шаблона. Если путь неверный, робот выдаст ошибку здесь.
+            TEMPLATE_PATH="cuivu/readmeg/rutyia/readme/muso/vip.txt"
+            
+            if [ -f "$TEMPLATE_PATH" ]; then
+              sed "s/{{ID}}/$USER_ID/g" "$TEMPLATE_PATH" > database/subs/GH-$USER_ID.txt
+            else
+              echo "ОШИБКА: Файл шаблона по адресу $TEMPLATE_PATH не найден!"
+              exit 1
             fi
+            
+            # Добавляем пароль в vip.html
+            if [ -f "vip.html" ]; then
+              sed -i "/const db = {/a \            \"$USER_PASS\": \"$USER_ID\"," vip.html
+            fi
+            
+            rm "$file"
           done
 
-      - name: Commit and Push changes
+      - name: Save changes
         run: |
           git config --global user.name "Ghost-Robot"
           git config --global user.email "robot@ghostlink.vpn"
-          git add database/subs/*.txt vip.html tasks/*.txt
-          git commit -m "Авто-создание подписки для $USER_ID" || exit 0
+          git add .
+          git commit -m "Робот: Создана подписка" || exit 0
           git push
           
