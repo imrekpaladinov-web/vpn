@@ -1,3 +1,7 @@
+#profile-title: Ghost Link | Gemeral 🔱
+#profile-update-interval: 1
+#subscription-userinfo: upload=0; download=0; total=1099511627776; expire=0
+#announce:Если не работает обновляйте подписку 🔄 Telegram: @VPN_GhostLink
 vless://5bac51bf-e25b-440d-8572-5ee95292c366@217.16.30.58:443?security=reality&encryption=none&echfq=none&pbk=jSx3_X_tBAcNgp7SrKSfZnr5WN0cTN2ShEJv4rHceQU&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=io.ozone.ru#%F0%9F%87%B7%F0%9F%87%BA+%D0%91%D0%B5%D0%BB%D1%8B%D0%B5+%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B8
 vless://5bac51bf-e25b-440d-8572-5ee95292c366@158.160.135.170:443?security=reality&encryption=none&echfq=none&pbk=jSx3_X_tBAcNgp7SrKSfZnr5WN0cTN2ShEJv4rHceQU&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=ads.x5.ru#%F0%9F%87%B7%F0%9F%87%BA+%D0%91%D0%B5%D0%BB%D1%8B%D0%B5+%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B8
 vless://46917323-63d4-4797-9543-21b5d4ff7d7b@thaelen.kaguya.sbs:443?security=reality&encryption=none&echfq=none&pbk=1ZNcu6FOn9xF-YfkFLhDI3vuO8w3VWq32zYVJ4JWBxQ&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=max.ru&sid=dc4aa6635008a9ae#%F0%9F%87%B7%F0%9F%87%BA+%D0%91%D0%B5%D0%BB%D1%8B%D0%B5+%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B8
