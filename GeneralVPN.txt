@@ -1,4 +1,4 @@
-#profile-title: Ghost Link | Gemeral 🔱
+#profile-title: Ghost Link | General 🔱
 #profile-update-interval: 1
 #subscription-userinfo: upload=0; download=0; total=1099511627776; expire=0
 #announce:Если не работает обновляйте подписку 🔄 Telegram: @VPN_GhostLink
