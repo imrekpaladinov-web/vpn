@@ -1,7 +1,7 @@
 #profile-title: Ghost Link | Free ⭐
 #profile-update-interval: 1
 #subscription-userinfo: upload=0; download=0; total=1099511627776; expire=0
-#announce:Если не работает Обновляйте подписку 🔄 Поддержкка: @svumt
+#announce:Если не работает обновляйте подписку 🔄 Telegram: @VPN_GhostLink
 vless://5bac51bf-e25b-440d-8572-5ee95292c366@158.160.135.170:443?security=reality&encryption=none&echfq=none&pbk=jSx3_X_tBAcNgp7SrKSfZnr5WN0cTN2ShEJv4rHceQU&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=eh.vk.com#%F0%9F%87%B7%F0%9F%87%BA+%D0%91%D0%B5%D0%BB%D1%8B%D0%B5+%D1%81%D0%BF%D0%B8%D1%81%D0%BA%D0%B8
 vless://d5909996-8ff6-43a9-8409-42acfaa81316@91.84.106.193:8443?security=reality&encryption=none&echfq=none&pbk=Cxvc5bVMKln6RxPs5MtviUZNDsmpfuYUK8UFBlcBaS0&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=rbc.ru&sid=331a8c3fe668c1ee#%F0%9F%87%AA%F0%9F%87%BA+%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D0%BD%D0%BE%D0%B9+%7C+Free+%E2%AD%90
 vless://87a8df36-e083-4c39-b11c-77ec1aa22924@grinoree.ru:443?security=reality&encryption=none&echfq=none&pbk=7zd9mJilgjOrg_ohtw23Vmio-pdnYqeP_r-kiWt87Cg&headerType=none&fp=chrome&allowinsecure=0&type=tcp&flow=xtls-rprx-vision&sni=rbc.ru&sid=8ba12e75110b7a9c#%F0%9F%87%AA%F0%9F%87%BA+%D0%A0%D0%B5%D0%B7%D0%B5%D1%80%D0%B2+%7C+Free+%E2%AD%90
