@@ -1,0 +1,30 @@
+name: Arena Speed Bot
+
+on:
+  schedule:
+    # Запуск каждые 5 минут
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Чтобы можно было запустить кнопкой
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    concurrency: 
+      group: bot-logic
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Libs
+        run: pip install pyTelegramBotAPI
+
+      - name: Start Bot Loop
+        run: python bot.py
+        
