@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -9,12 +10,11 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 from aiogram.exceptions import TelegramBadRequest
 
 # --- НАСТРОЙКИ ---
-TOKEN = "7799595838:AAH32DajGE-kp1msHQuDy0Ce8hW6ahOLNUE"
+TOKEN = os.getenv("BOT_TOKEN1")
 CHANNEL_ID = -1002640635653      
 MOD_CHAT_ID = -1003911037255     
 RULES_LINK = "https://t.me/+wd4SPOWd68MzNGE6"
 
-# Настройка интервала (в секундах). 5 минут = 300 секунд
 PUBLISH_INTERVAL = 300 
 
 logging.basicConfig(level=logging.INFO)
@@ -22,8 +22,9 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 pending_posts = {}
-publish_queue = [] # Очередь на публикацию
-last_publish_time = 0 # Время последней публикации
+publish_queue = []
+last_publish_time = 0
+mod_stats = {}
 
 class RegForm(StatesGroup):
     waiting_name = State()
@@ -43,14 +44,12 @@ def get_confirm_kb():
                [InlineKeyboardButton(text="Отмена ❌", callback_data="cancel")]]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# --- ФОНОВАЯ ЗАДАЧА ДЛЯ ПУБЛИКАЦИИ ПО ТАЙМЕРУ ---
 async def publication_worker():
     global last_publish_time
     while True:
         current_time = time.time()
         if publish_queue and (current_time - last_publish_time >= PUBLISH_INTERVAL):
-            data = publish_queue.pop(0) # Берем самый старый пост из очереди
-            
+            data = publish_queue.pop(0)
             try:
                 if data['reg_type'] == 'reg_opinion':
                     if data['type1'] == 'photo':
@@ -61,18 +60,29 @@ async def publication_worker():
                     m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
                     m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
                     await bot.send_media_group(CHANNEL_ID, media=[m1, m2])
-                
+
                 last_publish_time = time.time()
                 logging.info("Пост успешно опубликован по расписанию.")
             except Exception as e:
                 logging.error(f"Ошибка при публикации из очереди: {e}")
         
-        await asyncio.sleep(10) # Проверка очереди каждые 10 секунд
+        await asyncio.sleep(10)
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Салам, статюганище! Выбери тип регистрации:", reply_markup=get_main_kb())
+
+@dp.message(Command("reyt"))
+async def reyt(message: types.Message):
+    if not mod_stats:
+        await message.answer("Пока нет статистики.")
+        return
+    text = "<b>Рейтинг модераторов:</b>\n\n"
+    sorted_stats = sorted(mod_stats.items(), key=lambda x: x[1], reverse=True)
+    for i, (user, count) in enumerate(sorted_stats, 1):
+        text += f"{i}. {user} — {count}\n"
+    await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.in_(["reg_opinion", "reg_pb"]))
 async def start_reg(callback: types.CallbackQuery, state: FSMContext):
@@ -176,7 +186,11 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     post_id = f"post_{callback.from_user.id}_{int(time.time())}"
     pending_posts[post_id] = data
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}")]])
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}")],
+        [InlineKeyboardButton(text="⛔ Отменить публикацию", callback_data=f"decline_{post_id}")]
+    ])
     
     if data['reg_type'] == 'reg_opinion':
         await bot.send_photo(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb) if data['type1'] == 'photo' else await bot.send_video(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
@@ -189,30 +203,29 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("✅ Отправлено модераторам!")
     await state.clear()
 
+@dp.callback_query(F.data.startswith("decline_"))
+async def decline(callback: types.CallbackQuery):
+    post_id = callback.data.replace("decline_", "")
+    pending_posts.pop(post_id, None)
+    await callback.message.delete()
+    await callback.answer("❌ Отклонено")
+
 @dp.callback_query(F.data.startswith("publish_"))
 async def publish_item(callback: types.CallbackQuery):
     post_id = callback.data.replace("publish_", "")
     data = pending_posts.get(post_id)
     if not data:
         await callback.answer("Ошибка: пост уже в очереди или удален!", show_alert=True)
-        try: await callback.message.delete()
-        except: pass
         return
 
-    # Добавляем в очередь вместо мгновенной публикации
     publish_queue.append(data)
-    
-    try:
-        await callback.message.delete()
-        if data['reg_type'] == 'reg_pb':
-            await bot.send_message(MOD_CHAT_ID, f"⏳ ПБ от {callback.from_user.first_name} добавлен в очередь на публикацию.")
-        else:
-            await bot.send_message(MOD_CHAT_ID, f"⏳ Мнение добавлено в очередь. Публикация каждые 5 мин.")
-    except TelegramBadRequest:
-        pass
 
-    del pending_posts[post_id]
+    user = callback.from_user.first_name
+    mod_stats[user] = mod_stats.get(user, 0) + 1
+
+    await callback.message.delete()
     await callback.answer("✅ Добавлено в очередь!")
+    del pending_posts[post_id]
 
 @dp.callback_query(F.data == "cancel")
 async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
@@ -221,12 +234,9 @@ async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
 
 async def main():
     print(">>> БОТ ЗАПУЩЕН (ОЧЕРЕДЬ 5 МИНУТ) <<<")
-    # Запускаем фоновый процесс очереди
     asyncio.create_task(publication_worker())
-    
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
