@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
 from aiogram.exceptions import TelegramBadRequest
- 
+
 # --- НАСТРОЙКИ ---
 TOKEN = os.getenv("BOT_TOKEN1")
 CHANNEL_ID = -1002640635653      
