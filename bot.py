@@ -24,6 +24,9 @@ pending_posts = {}
 publish_queue = [] 
 last_publish_time = 0 
 
+# ДОБАВЛЕНО: рейтинг модераторов
+moderator_stats = {}
+
 class RegForm(StatesGroup):
     waiting_name = State()
     waiting_universe = State()
@@ -69,6 +72,20 @@ async def publication_worker():
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Салам, статюганище! Выбери тип регистрации:", reply_markup=get_main_kb())
+
+# ДОБАВЛЕНО: команда рейтинга
+@dp.message(Command("reyt"))
+async def show_rating(message: types.Message):
+    if not moderator_stats:
+        await message.answer("Пока нет статистики.")
+        return
+    
+    sorted_stats = sorted(moderator_stats.items(), key=lambda x: x[1], reverse=True)
+    text = "<b>Рейтинг модераторов:</b>\n\n"
+    for i, (user_id, count) in enumerate(sorted_stats, 1):
+        text += f"{i}. <a href='tg://user?id={user_id}'>Модератор</a> — {count}\n"
+    
+    await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.in_(["reg_opinion", "reg_pb"]))
 async def start_reg(callback: types.CallbackQuery, state: FSMContext):
@@ -175,7 +192,12 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     post_id = f"post_{callback.from_user.id}_{int(time.time())}"
     pending_posts[post_id] = data
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}")]])
+
+    # ИЗМЕНЕНО: добавлена кнопка отмены
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}"),
+        InlineKeyboardButton(text="Отменить ⛔", callback_data=f"reject_{post_id}")
+    ]])
     
     if data['reg_type'] == 'reg_opinion':
         target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
@@ -189,6 +211,16 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("✅ Отправлено модераторам!")
     await state.clear()
 
+# ДОБАВЛЕНО: отмена публикации
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_item(callback: types.CallbackQuery):
+    post_id = callback.data.replace("reject_", "")
+    if post_id in pending_posts:
+        del pending_posts[post_id]
+    await callback.message.delete()
+    await bot.send_message(MOD_CHAT_ID, "⛔ Публикация отменена.")
+    await callback.answer("Отменено")
+
 @dp.callback_query(F.data.startswith("publish_"))
 async def publish_item(callback: types.CallbackQuery):
     post_id = callback.data.replace("publish_", "")
@@ -200,6 +232,9 @@ async def publish_item(callback: types.CallbackQuery):
         return
 
     publish_queue.append(data)
+
+    # ДОБАВЛЕНО: считаем рейтинг
+    moderator_stats[callback.from_user.id] = moderator_stats.get(callback.from_user.id, 0) + 1
     
     try:
         await callback.message.delete()
