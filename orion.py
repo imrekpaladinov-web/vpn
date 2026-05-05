@@ -2,29 +2,30 @@ import asyncio
 import logging
 import time
 import os
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Bot, Dispatcher, types, F, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
 from aiogram.exceptions import TelegramBadRequest
 
-# --- НАСТРОЙКИ ---
 TOKEN = os.getenv("BOT_TOKEN1")
 CHANNEL_ID = -1002640635653      
 MOD_CHAT_ID = -1003911037255     
 RULES_LINK = "https://t.me/+wd4SPOWd68MzNGE6"
 
-PUBLISH_INTERVAL = 300 
+PUBLISH_INTERVAL = 180 
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 pending_posts = {}
-publish_queue = []
-last_publish_time = 0
-mod_stats = {}
+publish_queue = [] 
+last_publish_time = 0 
+
+# ДОБАВЛЕНО: рейтинг модераторов
+moderator_stats = {}
 
 class RegForm(StatesGroup):
     waiting_name = State()
@@ -60,12 +61,11 @@ async def publication_worker():
                     m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
                     m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
                     await bot.send_media_group(CHANNEL_ID, media=[m1, m2])
-
+                
                 last_publish_time = time.time()
-                logging.info("Пост успешно опубликован по расписанию.")
+                logging.info("Пост успешно опубликован.")
             except Exception as e:
-                logging.error(f"Ошибка при публикации из очереди: {e}")
-        
+                logging.error(f"Ошибка публикации: {e}")
         await asyncio.sleep(10)
 
 @dp.message(Command("start"))
@@ -73,15 +73,18 @@ async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Салам, статюганище! Выбери тип регистрации:", reply_markup=get_main_kb())
 
+# ДОБАВЛЕНО: команда рейтинга
 @dp.message(Command("reyt"))
-async def reyt(message: types.Message):
-    if not mod_stats:
+async def show_rating(message: types.Message):
+    if not moderator_stats:
         await message.answer("Пока нет статистики.")
         return
+    
+    sorted_stats = sorted(moderator_stats.items(), key=lambda x: x[1], reverse=True)
     text = "<b>Рейтинг модераторов:</b>\n\n"
-    sorted_stats = sorted(mod_stats.items(), key=lambda x: x[1], reverse=True)
-    for i, (user, count) in enumerate(sorted_stats, 1):
-        text += f"{i}. {user} — {count}\n"
+    for i, (user_id, count) in enumerate(sorted_stats, 1):
+        text += f"{i}. <a href='tg://user?id={user_id}'>Модератор</a> — {count}\n"
+    
     await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.in_(["reg_opinion", "reg_pb"]))
@@ -140,25 +143,30 @@ async def process_photo2(message: types.Message, state: FSMContext):
 
 async def finalize_preview(message, state):
     data = await state.get_data()
-    author_link = f"<a href='tg://user?id={message.from_user.id}'>{message.from_user.first_name}</a>"
+    author_mention = f'<a href="tg://user?id={message.from_user.id}">{html.quote(message.from_user.first_name)}</a>'
     
     if data['reg_type'] == 'reg_opinion':
-        unis = "\n".join([f"➤ {u.strip()}" for u in data['universe'].replace(',', '\n').split('\n') if u.strip()])
-        conds = "отсутствуют" if data['conditions'].lower() == "нет" else data['conditions']
+        unis = "\n".join([f"➤ {html.quote(u.strip())}" for u in data['universe'].replace(',', '\n').split('\n') if u.strip()])
+        conds = "Не" if data['conditions'].lower() == "нет" else html.quote(data['conditions'])
+    
         custom_footer = "Ꮶᴛᴏ нибудь жᴇᴧᴀᴇᴛ дᴀᴛь ᴇʍу ᴏᴛᴨᴏᴩ ʙ ɸᴏᴩʍᴀᴛᴇ ᴨᴩуɸбᴀᴛᴛᴧ?"
         
         caption = (
-            f"<b>— автор мнения:</b> {author_link}\n\n"
-            f"<b><u>{data['name']}</u> аннигилирует всех персонажей из ниже представленных вселенных:</b>\n"
+            f"<b>— автор мнения:</b> {author_mention}\n\n"
+            f"<u><b>{html.quote(data['name'])}</b></u> <b>аннигилирует всех персонажей из ниже представленных вселенных:</b>\n"
             f"<blockquote><b>{unis}</b></blockquote>\n"
             f"<blockquote><b>Условия баттла: {conds}</b></blockquote>\n"
             f"{custom_footer}"
         )
     else:
-        chars, universes, players = data['name'].split('\n'), data['universe'].split('\n'), data['players'].split('\n')
+        chars = [html.quote(c.strip()) for c in data['name'].split('\n')]
+        universes = [html.quote(u.strip()) for u in data['universe'].split('\n')]
+        players = [html.quote(p.strip()) for p in data['players'].split('\n')]
+        
         p1, p2 = (chars[0] if len(chars)>0 else "P1"), (chars[1] if len(chars)>1 else "P2")
         u1, u2 = (universes[0] if len(universes)>0 else "U1"), (universes[1] if len(universes)>1 else "U2")
-        pl1, pl2 = (players[0].strip() if len(players)>0 else "@id1"), (players[1].strip() if len(players)>1 else "@id2")
+        pl1, pl2 = (players[0] if len(players)>0 else "@id1"), (players[1] if len(players)>1 else "@id2")
+        
         caption = (
             f"<blockquote><b>ПЕРСОНАЛЬНЫЙ ПРУФ-БАТТЛ</b></blockquote>\n\n"
             f"<b>Player 1:</b> {pl1}\n"
@@ -171,14 +179,12 @@ async def finalize_preview(message, state):
 
     await state.update_data(final_caption=caption)
     if data['reg_type'] == 'reg_opinion':
-        if data['type1'] == 'photo':
-            await message.answer_photo(data['photo1'], caption=caption, parse_mode="HTML", reply_markup=get_confirm_kb())
-        else:
-            await message.answer_video(data['photo1'], caption=caption, parse_mode="HTML", reply_markup=get_confirm_kb())
+        target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
+        await target(message.chat.id, data['photo1'], caption=caption, parse_mode="HTML", reply_markup=get_confirm_kb())
     else:
         m1 = InputMediaPhoto(media=data['photo1'], caption=caption, parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=caption, parse_mode="HTML")
         m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
-        await message.answer_media_group(media=[m1, m2])
+        await bot.send_media_group(message.chat.id, media=[m1, m2])
         await message.answer("Проверь ПБ выше. На модерацию?", reply_markup=get_confirm_kb())
 
 @dp.callback_query(F.data == "confirm_send")
@@ -187,13 +193,15 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     post_id = f"post_{callback.from_user.id}_{int(time.time())}"
     pending_posts[post_id] = data
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}")],
-        [InlineKeyboardButton(text="⛔ Отменить публикацию", callback_data=f"decline_{post_id}")]
-    ])
+    # ИЗМЕНЕНО: добавлена кнопка отмены
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Опубликовать 📢", callback_data=f"publish_{post_id}"),
+        InlineKeyboardButton(text="Отменить ⛔", callback_data=f"reject_{post_id}")
+    ]])
     
     if data['reg_type'] == 'reg_opinion':
-        await bot.send_photo(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb) if data['type1'] == 'photo' else await bot.send_video(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
+        target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
+        await target(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
     else:
         m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
         m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
@@ -203,29 +211,40 @@ async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("✅ Отправлено модераторам!")
     await state.clear()
 
-@dp.callback_query(F.data.startswith("decline_"))
-async def decline(callback: types.CallbackQuery):
-    post_id = callback.data.replace("decline_", "")
-    pending_posts.pop(post_id, None)
+# ДОБАВЛЕНО: отмена публикации
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_item(callback: types.CallbackQuery):
+    post_id = callback.data.replace("reject_", "")
+    if post_id in pending_posts:
+        del pending_posts[post_id]
     await callback.message.delete()
-    await callback.answer("❌ Отклонено")
+    await bot.send_message(MOD_CHAT_ID, "⛔ Публикация отменена.")
+    await callback.answer("Отменено")
 
 @dp.callback_query(F.data.startswith("publish_"))
 async def publish_item(callback: types.CallbackQuery):
     post_id = callback.data.replace("publish_", "")
     data = pending_posts.get(post_id)
     if not data:
-        await callback.answer("Ошибка: пост уже в очереди или удален!", show_alert=True)
+        await callback.answer("Ошибка: пост уже в очереди!", show_alert=True)
+        try: await callback.message.delete()
+        except: pass
         return
 
     publish_queue.append(data)
 
-    user = callback.from_user.first_name
-    mod_stats[user] = mod_stats.get(user, 0) + 1
+    # ДОБАВЛЕНО: считаем рейтинг
+    moderator_stats[callback.from_user.id] = moderator_stats.get(callback.from_user.id, 0) + 1
+    
+    try:
+        await callback.message.delete()
+        text = f"⏳ Пост от {callback.from_user.first_name} в очереди (3 мин)."
+        await bot.send_message(MOD_CHAT_ID, text)
+    except TelegramBadRequest:
+        pass
 
-    await callback.message.delete()
-    await callback.answer("✅ Добавлено в очередь!")
     del pending_posts[post_id]
+    await callback.answer("✅ Добавлено в очередь!")
 
 @dp.callback_query(F.data == "cancel")
 async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
@@ -233,7 +252,8 @@ async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("❌ Отменено.")
 
 async def main():
-    print(">>> БОТ ЗАПУЩЕН (ОЧЕРЕДЬ 5 МИНУТ) <<<")
+    print(">>> БОТ ЗАПУЩЕН <<<")
+    
     asyncio.create_task(publication_worker())
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
