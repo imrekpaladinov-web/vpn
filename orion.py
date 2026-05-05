@@ -10,6 +10,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMedia
 from aiogram.exceptions import TelegramBadRequest
 
 TOKEN = os.getenv("BOT_TOKEN1")
+print("TOKEN =", TOKEN)
 CHANNEL_ID = -1002640635653      
 MOD_CHAT_ID = -1003911037255     
 RULES_LINK = "https://t.me/+wd4SPOWd68MzNGE6" 
