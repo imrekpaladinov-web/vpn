@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import time
 
 from openai import OpenAI
@@ -15,10 +14,10 @@ from aiogram.filters import Command
 BOT_TOKEN = "8620489449:AAHwbVrlg0J74MGAZRoQ9yO1_7ZWokQ3xQQ"
 
 API_KEYS = [
-    "csk-8nye25ehjeck45wdm62k9th4ff6wfrdtcw3yvfw53mvt3v9y"
+    os.getenv("OPENROUTER_API_KEY")
 ]
 
-MODEL_NAME = "llama-4-scout-17b-16e-instruct"  # ИСПРАВЛЕНО: правильное название модели
+MODEL_NAME = "meta-llama/llama-3.3-70b-instruct:free"
 
 MAX_TOKENS = 1000
 
@@ -51,7 +50,7 @@ def get_client():
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://api.cerebras.ai/v1"  # ИСПРАВЛЕНО: убрали /v1
+        base_url="https://openrouter.ai/api/v1"
     )
 
     return client
@@ -164,7 +163,11 @@ async def ai_chat(message: types.Message):
                     }
                 ],
                 temperature=0.7,
-                max_tokens=MAX_TOKENS
+                max_tokens=MAX_TOKENS,
+                extra_headers={
+                    "HTTP-Referer": "https://t.me/ACF_AI_bot",
+                    "X-Title": "ACF AI"
+                }
             )
 
             answer = response.choices[0].message.content
@@ -185,15 +188,15 @@ async def ai_chat(message: types.Message):
 
             error_text = str(e).lower()
 
-            print(f"Ошибка ключа {current_key_index}: {e}")  # улучшен лог
+            print(f"Ошибка ключа {current_key_index}: {e}")
 
             if (
                 "429" in error_text
                 or "rate limit" in error_text
                 or "quota" in error_text
                 or "insufficient" in error_text
-                or "model" in error_text      # ДОБАВЛЕНО: ловим ошибку модели
-                or "invalid" in error_text    # ДОБАВЛЕНО: ловим невалидный ключ
+                or "model" in error_text
+                or "invalid" in error_text
             ):
 
                 switch_api()
