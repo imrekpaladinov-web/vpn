@@ -18,7 +18,7 @@ API_KEYS = [
     "csk-8nye25ehjeck45wdm62k9th4ff6wfrdtcw3yvfw53mvt3v9y"
 ]
 
-MODEL_NAME = "llama3.1-70b"  # ИСПРАВЛЕНО: правильное название модели
+MODEL_NAME = "Llama 4 Scout"  # ИСПРАВЛЕНО: правильное название модели
 
 MAX_TOKENS = 1000
 
@@ -51,7 +51,7 @@ def get_client():
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://api.cerebras.ai"  # ИСПРАВЛЕНО: убрали /v1
+        base_url="https://api.cerebras.ai/v1"  # ИСПРАВЛЕНО: убрали /v1
     )
 
     return client
