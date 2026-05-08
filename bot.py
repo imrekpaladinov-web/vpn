@@ -48,6 +48,8 @@ class RegForm(StatesGroup):
     waiting_photo2 = State()
     waiting_acf_question = State()
 
+user_acf_chats = {}
+
 def get_main_kb():
     buttons = [
         [InlineKeyboardButton(text="📝 Мнение ", callback_data="reg_opinion")],
@@ -227,6 +229,8 @@ async def acf_online(callback: types.CallbackQuery, state: FSMContext):
 
     await state.set_state(RegForm.waiting_acf_question)
 
+    user_acf_chats[callback.from_user.id] = []
+
     await callback.message.answer(
         "Задай любой вопрос по ACF или скажи про что ты хочешь узнать? 🎉"
     )
@@ -242,31 +246,71 @@ async def acf_ai_chat(message: types.Message, state: FSMContext):
 
     try:
 
-        prompt = f"""
-Ты — эксперт по Anime Characters Fight Wiki (ACF).
+        user_id = message.from_user.id
 
-Отвечай только по теме:
-- powerscaling
-- ACF
-- battleboarding
+        if user_id not in user_acf_chats:
+            user_acf_chats[user_id] = []
+
+        history = user_acf_chats[user_id]
+
+        history_text = ""
+
+        for msg in history:
+            history_text += f"{msg}\n"
+
+        prompt = f"""
+Ты — ИСКЛЮЧИТЕЛЬНО эксперт по Anime Characters Fight Wiki.
+
+Главный сайт:
+https://anime-characters-fight.fandom.com
+
+Ты ОБЯЗАН:
+- использовать ТОЛЬКО информацию и систему ACF
+- никогда не использовать VS Battles Wiki
+- никогда не путать ACF и VSBW
+- никогда не ссылаться на VS Battles Wiki
+- полностью игнорировать https://vsbattles.fandom.com
+- отвечать только в контексте ACF
+- использовать только tiering system, cosmology и scaling из ACF
+
+Если пользователь спрашивает:
+- tier
+- уровень
+- 1-S
+- High 1-A
+- outerversal
+- boundless
 - cosmology
-- feats
-- hax
 - speed
 - AP
-- durability
 - dimensionality
-- tiering
+- hax
 
-Отвечай красиво и понятно на русском языке.
+то ты должен отвечать максимально близко к информации с сайта ACF:
+https://anime-characters-fight.fandom.com
 
-Вопрос пользователя:
+Если знаешь определение или описание с ACF — пиши его максимально близко к оригиналу.
+
+Никогда не говори про систему VS Battles Wiki.
+
+История диалога:
+{history_text}
+
+Новый вопрос пользователя:
 {user_question}
 """
 
         response = gemini_model.generate_content(prompt)
 
         answer = response.text
+
+        history.append(f"Пользователь: {user_question}")
+        history.append(f"AI: {answer}")
+
+        if len(history) > 20:
+            history = history[-20:]
+
+        user_acf_chats[user_id] = history
 
         if len(answer) > 4000:
             answer = answer[:4000]
