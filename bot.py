@@ -247,23 +247,24 @@ async def acf_ai_chat(message: types.Message, state: FSMContext):
 
     wait_msg = await message.answer("🤖 ИИ думает...")
 
-    try:
+   try:
 
-        user_id = message.from_user.id
+    user_id = message.from_user.id
 
-        if user_id not in user_acf_chats:
-            user_acf_chats[user_id] = []
+    if user_id not in user_acf_chats:
+        user_acf_chats[user_id] = []
 
-        history = user_acf_chats[user_id]
+    history = user_acf_chats[user_id]
 
-        history_text = ""
+    history_text = ""
 
-        for msg in history:
-            history_text += f"{msg}\n"
-            
-            prompt = f"""
+    for msg in history:
+        history_text += f"{msg}\n"
+
+    prompt = f"""
 База знаний ACF:
 {ACF_KNOWLEDGE}
+
 Ты — ИСКЛЮЧИТЕЛЬНО эксперт по Anime Characters Fight Wiki.
 
 Главный сайт:
@@ -307,9 +308,9 @@ https://anime-characters-fight.fandom.com
 {user_question}
 """
 
-        response = gemini_model.generate_content(prompt)
-
-        answer = response.text
+    response = gemini_model.generate_content(prompt) 
+        
+       answer = response.text
 
         history.append(f"Пользователь: {user_question}")
         history.append(f"AI: {answer}")
