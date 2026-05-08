@@ -18,7 +18,7 @@ API_KEYS = [
     "csk-8nye25ehjeck45wdm62k9th4ff6wfrdtcw3yvfw53mvt3v9y"
 ]
 
-MODEL_NAME = "Llama 4 Scout"  # ИСПРАВЛЕНО: правильное название модели
+MODEL_NAME = "llama-4-scout-17b-16e-instruct"  # ИСПРАВЛЕНО: правильное название модели
 
 MAX_TOKENS = 1000
 
