@@ -15,19 +15,10 @@ from aiogram.filters import Command
 BOT_TOKEN = "8620489449:AAHwbVrlg0J74MGAZRoQ9yO1_7ZWokQ3xQQ"
 
 API_KEYS = [
-    "sk-1dcd4dd9501f4e74835dba1b35f2b77f",
-    "sk-fbd9f58a79604a3dae3eae2ca052662f",
-    "sk-fa1eafb9699846369bce36dd4cbbe146",
-    "sk-cc1e91b597424ef087ce47b4778a0b0e",
-    "sk-faf61e964d97439ab11fd35c5f44dc2b",
-    "sk-66322bda747c427d833c6f593d2f8c9e",
-    "sk-35916cff53e443e6a60e802edad13e87",
-    "sk-7a766b3b329b46aa85ca52357367f1d7",
-    "sk-48352573e99d41df9829986ca4fb860d",
-    "sk-a1d558434cbf4573a5512e42b8b3f601"
+    "csk-8nye25ehjeck45wdm62k9th4ff6wfrdtcw3yvfw53mvt3v9y"
 ]
 
-MODEL_NAME = "deepseek-chat"  # ИСПРАВЛЕНО: правильное название модели
+MODEL_NAME = "llama3.1-8b"  # ИСПРАВЛЕНО: правильное название модели
 
 MAX_TOKENS = 1000
 
@@ -60,7 +51,7 @@ def get_client():
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://api.deepseek.com"  # ИСПРАВЛЕНО: убрали /v1
+        base_url="https://api.cerebras.ai"  # ИСПРАВЛЕНО: убрали /v1
     )
 
     return client
