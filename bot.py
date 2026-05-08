@@ -3,7 +3,8 @@ import logging
 import time
 import os
 import random
-import json
+import google.generativeai as genai
+
 from aiogram import Bot, Dispatcher, types, F, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -13,30 +14,30 @@ from aiogram.enums import PollType
 from aiogram.exceptions import TelegramBadRequest
 
 TOKEN = "7967554585:AAGWNP1kF9u2Tbs0-JbpHPGkmYmdCHIiCn0"
-CHANNEL_ID = -1003822775225      
-MOD_CHAT_ID = -1003987317286     
-RULES_LINK = "https://t.me/RulesOfSpaceRealm"
-COMMENTS_CHAT_ID = -1003777022478 
 
-PUBLISH_INTERVAL = 180 
+CHANNEL_ID = -1003822775225
+MOD_CHAT_ID = -1003987317286
+RULES_LINK = "https://t.me/RulesOfSpaceRealm"
+COMMENTS_CHAT_ID = -1003777022478
+
+PUBLISH_INTERVAL = 180
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+genai.configure(api_key=GEMINI_API_KEY)
+
+gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 
 logging.basicConfig(level=logging.INFO)
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 pending_posts = {}
-publish_queue = [] 
-last_publish_time = 0 
+publish_queue = []
+last_publish_time = 0
 
 moderator_stats = {}
-
-ELO_FILE = "elo.json"
-
-if os.path.exists(ELO_FILE):
-    with open(ELO_FILE, "r", encoding="utf-8") as f:
-        elo_data = json.load(f)
-else:
-    elo_data = {}
 
 class RegForm(StatesGroup):
     waiting_name = State()
@@ -45,69 +46,15 @@ class RegForm(StatesGroup):
     waiting_conditions = State()
     waiting_photo = State()
     waiting_photo2 = State()
-
-def save_elo():
-    with open(ELO_FILE, "w", encoding="utf-8") as f:
-        json.dump(elo_data, f, ensure_ascii=False, indent=4)
-
-def create_player(user_id):
-    if str(user_id) not in elo_data:
-        elo_data[str(user_id)] = {
-            "elo": 0,
-            "calibration_games": 0,
-            "calibration_wins": 0,
-            "calibrated": False
-        }
-        save_elo()
-
-def get_calibration_elo(wins):
-    if wins == 0:
-        return random.randint(20, 40)
-    elif wins == 1:
-        return random.randint(70, 120)
-    elif wins == 2:
-        return random.randint(140, 200)
-    else:
-        return random.randint(220, 250)
-
-def process_win(player):
-    elo = player["elo"]
-
-    if elo < 500:
-        gain = random.randint(80, 90)
-
-    elif elo < 1000:
-        gain = random.randint(60, 70)
-
-    else:
-        gain = 50
-
-    player["elo"] += gain
-    return gain
-
-def process_lose(player):
-    elo = player["elo"]
-
-    if elo < 500:
-        lose = 30
-
-    elif elo < 1000:
-        lose = 35
-
-    else:
-        lose = 40
-
-    old_elo = player["elo"]
-
-    player["elo"] = max(0, player["elo"] - lose)
-
-    removed = old_elo - player["elo"]
-
-    return removed
+    waiting_acf_question = State()
 
 def get_main_kb():
-    buttons = [[InlineKeyboardButton(text="📝 Мнение ", callback_data="reg_opinion")],
-               [InlineKeyboardButton(text="⚔️ ПБ ⚔️", callback_data="reg_pb")]]
+    buttons = [
+        [InlineKeyboardButton(text="📝 Мнение ", callback_data="reg_opinion")],
+        [InlineKeyboardButton(text="⚔️ ПБ ⚔️", callback_data="reg_pb")],
+        [InlineKeyboardButton(text="ACF Онлайн 🔥", callback_data="acf_online")]
+    ]
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def get_confirm_kb():
@@ -117,47 +64,83 @@ def get_confirm_kb():
 
 async def publication_worker():
     global last_publish_time
+
     while True:
         current_time = time.time()
+
         if publish_queue and (current_time - last_publish_time >= PUBLISH_INTERVAL):
+
             data = publish_queue.pop(0)
+
             try:
                 sent_msg = None
-                
+
                 if data['reg_type'] == 'reg_opinion':
+
                     if data['type1'] == 'photo':
-                        sent_msg = await bot.send_photo(CHANNEL_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML")
+                        sent_msg = await bot.send_photo(
+                            CHANNEL_ID,
+                            data['photo1'],
+                            caption=data['final_caption'],
+                            parse_mode="HTML"
+                        )
                     else:
-                        sent_msg = await bot.send_video(CHANNEL_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML")
+                        sent_msg = await bot.send_video(
+                            CHANNEL_ID,
+                            data['photo1'],
+                            caption=data['final_caption'],
+                            parse_mode="HTML"
+                        )
+
                 else:
-                    m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
-                    m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
-                    
-                    media_group = await bot.send_media_group(CHANNEL_ID, media=[m1, m2])
+
+                    m1 = InputMediaPhoto(
+                        media=data['photo1'],
+                        caption=data['final_caption'],
+                        parse_mode="HTML"
+                    ) if data['type1'] == 'photo' else InputMediaVideo(
+                        media=data['photo1'],
+                        caption=data['final_caption'],
+                        parse_mode="HTML"
+                    )
+
+                    m2 = InputMediaPhoto(
+                        media=data['photo2']
+                    ) if data['type2'] == 'photo' else InputMediaVideo(
+                        media=data['photo2']
+                    )
+
+                    media_group = await bot.send_media_group(
+                        CHANNEL_ID,
+                        media=[m1, m2]
+                    )
+
                     sent_msg = media_group[0]
-                
+
                 last_publish_time = time.time()
+
                 logging.info("Пост успешно опубликован.")
 
                 if data['reg_type'] == 'reg_pb' and sent_msg:
+
                     message_id = sent_msg.message_id
-                    
+
                     players_raw = data.get('players', '').split('\n')
                     names_raw = data.get('name', '').split('\n')
                     conditions = data.get('conditions', 'Нет условий')
-                    
+
                     clean_players = [p.strip() for p in players_raw if p.strip()]
                     clean_names = [n.strip() for n in names_raw if n.strip()]
-                    
+
                     walker_idx = random.randint(0, len(clean_players) - 1) if clean_players else 0
                     walker_user = clean_players[walker_idx] if clean_players else "@unknown"
-                    walker_char = clean_names[walker_idx] if walker_idx < len(clean_names) else "Персонаж"
-                    
+
                     poll_options = []
+
                     for name in clean_names:
                         if name:
                             poll_options.append(name)
-                    
+
                     if not poll_options:
                         poll_options = ["Player 1", "Player 2"]
 
@@ -168,8 +151,9 @@ async def publication_worker():
                             options=poll_options,
                             is_anonymous=True,
                             type=PollType.REGULAR,
-                            reply_to_message_id=message_id 
+                            reply_to_message_id=message_id
                         )
+
                     except Exception as e:
                         logging.error(f"Ошибка создания опроса: {e}")
 
@@ -181,10 +165,15 @@ async def publication_worker():
                         f"<b>Бот определил, ходит — {walker_user}. Удачи в пруфбаттле! 🔥</b>\n\n"
                         f"<b>Условие пруфбаттла: {conditions}</b>"
                     )
-                    
-                    kb_comment = InlineKeyboardMarkup(inline_keyboard=[[
-                        InlineKeyboardButton(text="👉 Перейти к посту", url=post_link)
-                    ]])
+
+                    kb_comment = InlineKeyboardMarkup(
+                        inline_keyboard=[[
+                            InlineKeyboardButton(
+                                text="👉 Перейти к посту",
+                                url=post_link
+                            )
+                        ]]
+                    )
 
                     try:
                         await bot.send_message(
@@ -194,245 +183,224 @@ async def publication_worker():
                             reply_markup=kb_comment,
                             disable_web_page_preview=False
                         )
+
                     except Exception as e:
                         logging.error(f"Ошибка отправки комментария: {e}")
 
-                    for username in clean_players:
-                        try:
-                            chat = await bot.get_chat(username)
-                            user_id = str(chat.id)
-
-                            create_player(user_id)
-
-                            kb_elo = InlineKeyboardMarkup(
-                                inline_keyboard=[
-                                    [
-                                        InlineKeyboardButton(
-                                            text="Да ✅",
-                                            callback_data=f"pbwin_{user_id}"
-                                        ),
-                                        InlineKeyboardButton(
-                                            text="Нет ⛔",
-                                            callback_data=f"pclose_{user_id}"
-                                        )
-                                    ]
-                                ]
-                            )
-
-                            await bot.send_message(
-                                MOD_CHAT_ID,
-                                f"Игрок <a href='tg://user?id={user_id}'>{html.quote(chat.first_name)}</a> выиграл ПБ?",
-                                parse_mode="HTML",
-                                reply_markup=kb_elo
-                            )
-
-                        except Exception as e:
-                            logging.error(f"Ошибка ELO-модерации: {e}")
-
             except Exception as e:
                 logging.error(f"Ошибка публикации: {e}")
+
         await asyncio.sleep(10)
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
+
     await state.clear()
-    await message.answer("Салам, статюганище! Выбери тип регистрации:", reply_markup=get_main_kb())
+
+    await message.answer(
+        "Салам, статюганище! Выбери тип регистрации:",
+        reply_markup=get_main_kb()
+    )
 
 @dp.message(Command("reyt"))
 async def show_rating(message: types.Message):
+
     if not moderator_stats:
         await message.answer("Пока нет статистики.")
         return
-    
-    sorted_stats = sorted(moderator_stats.items(), key=lambda x: x[1], reverse=True)
-    text = "<b>Рейтинг модераторов:</b>\n\n"
-    for i, (user_id, count) in enumerate(sorted_stats, 1):
-        text += f"{i}. <a href='tg://user?id={user_id}'>Модератор</a> — {count}\n"
-    
-    await message.answer(text, parse_mode="HTML")
 
-@dp.message(Command("reyt_elo"))
-async def elo_rating(message: types.Message):
-
-    target = message.reply_to_message.from_user if message.reply_to_message else message.from_user
-
-    user_id = str(target.id)
-
-    if user_id not in elo_data:
-
-        await message.answer(
-            "Игрок не завершил калибровку, очки ELO: 0🔥."
-        )
-        return
-
-    player = elo_data[user_id]
-
-    if not player["calibrated"]:
-
-        await message.answer(
-            f"Игрок не завершил калибровку, очки ELO: 0🔥."
-        )
-        return
-
-    await message.answer(
-        f"Очки ELO: {player['elo']}🔥"
+    sorted_stats = sorted(
+        moderator_stats.items(),
+        key=lambda x: x[1],
+        reverse=True
     )
 
-@dp.callback_query(F.data.startswith("pbwin_"))
-async def pb_win(callback: types.CallbackQuery):
+    text = "<b>Рейтинг модераторов:</b>\n\n"
 
-    user_id = callback.data.replace("pbwin_", "")
+    for i, (user_id, count) in enumerate(sorted_stats, 1):
+        text += f"{i}. <a href='tg://user?id={user_id}'>Модератор</a> — {count}\n"
 
-    create_player(user_id)
+    await message.answer(text, parse_mode="HTML")
 
-    player = elo_data[user_id]
+@dp.callback_query(F.data == "acf_online")
+async def acf_online(callback: types.CallbackQuery, state: FSMContext):
 
-    if not player["calibrated"]:
+    await state.set_state(RegForm.waiting_acf_question)
 
-        player["calibration_games"] += 1
-        player["calibration_wins"] += 1
+    await callback.message.answer(
+        "Задай любой вопрос по ACF или скажи про что ты хочешь узнать? 🎉"
+    )
 
-        if player["calibration_games"] >= 3:
+    await callback.answer()
 
-            wins = player["calibration_wins"]
+@dp.message(RegForm.waiting_acf_question)
+async def acf_ai_chat(message: types.Message, state: FSMContext):
 
-            elo = get_calibration_elo(wins)
+    user_question = message.text
 
-            player["elo"] = elo
-            player["calibrated"] = True
+    wait_msg = await message.answer("🤖 ИИ думает...")
 
-            await callback.message.answer(
-                f"Игрок получил калибровочный рейтинг: {elo}🔥"
-            )
+    try:
 
-        else:
+        prompt = f"""
+Ты — эксперт по Anime Characters Fight Wiki (ACF).
 
-            await callback.message.answer(
-                f"Победа засчитана.\n"
-                f"Калибровка: {player['calibration_games']}/3"
-            )
+Отвечай только по теме:
+- powerscaling
+- ACF
+- battleboarding
+- cosmology
+- feats
+- hax
+- speed
+- AP
+- durability
+- dimensionality
+- tiering
 
-    else:
+Отвечай красиво и понятно на русском языке.
 
-        gain = process_win(player)
+Вопрос пользователя:
+{user_question}
+"""
 
-        await callback.message.answer(
-            f"Игрок получил +{gain} ELO🔥"
+        response = gemini_model.generate_content(prompt)
+
+        answer = response.text
+
+        if len(answer) > 4000:
+            answer = answer[:4000]
+
+        await wait_msg.edit_text(answer)
+
+    except Exception as e:
+
+        await wait_msg.edit_text(
+            f"❌ Ошибка AI: {e}"
         )
-
-    save_elo()
-
-    await callback.answer("Победа засчитана ✅")
-
-@dp.callback_query(F.data.startswith("pclose_"))
-async def pb_lose(callback: types.CallbackQuery):
-
-    user_id = callback.data.replace("pclose_", "")
-
-    create_player(user_id)
-
-    player = elo_data[user_id]
-
-    if not player["calibrated"]:
-
-        player["calibration_games"] += 1
-
-        if player["calibration_games"] >= 3:
-
-            wins = player["calibration_wins"]
-
-            elo = get_calibration_elo(wins)
-
-            player["elo"] = elo
-            player["calibrated"] = True
-
-            await callback.message.answer(
-                f"Игрок получил калибровочный рейтинг: {elo}🔥"
-            )
-
-        else:
-
-            await callback.message.answer(
-                f"Поражение засчитано.\n"
-                f"Калибровка: {player['calibration_games']}/3"
-            )
-
-    else:
-
-        removed = process_lose(player)
-
-        await callback.message.answer(
-            f"Игрок потерял -{removed} ELO🔥"
-        )
-
-    save_elo()
-
-    await callback.answer("Поражение засчитано ⛔")
 
 @dp.callback_query(F.data.in_(["reg_opinion", "reg_pb"]))
 async def start_reg(callback: types.CallbackQuery, state: FSMContext):
+
     await state.update_data(reg_type=callback.data)
     await state.set_state(RegForm.waiting_name)
+
     text = "Отправь имя персонажа.." if callback.data == "reg_opinion" else "Отправь имена персонажей (с новой строки).."
+
     await callback.message.answer(text)
+
     await callback.answer()
 
 @dp.message(RegForm.waiting_name)
 async def process_name(message: types.Message, state: FSMContext):
+
     await state.update_data(name=message.text)
+
     await state.set_state(RegForm.waiting_universe)
-    await message.answer("Отправь вселенные (каждую с новой строки или через запятую)..")
+
+    await message.answer(
+        "Отправь вселенные (каждую с новой строки или через запятую).."
+    )
 
 @dp.message(RegForm.waiting_universe)
 async def process_universe(message: types.Message, state: FSMContext):
+
     await state.update_data(universe=message.text)
+
     data = await state.get_data()
+
     if data['reg_type'] == 'reg_pb':
+
         await state.set_state(RegForm.waiting_players)
-        await message.answer("Отправь юзернеймы игроков (каждый с новой строки)..")
+
+        await message.answer(
+            "Отправь юзернеймы игроков (каждый с новой строки).."
+        )
+
     else:
+
         await state.set_state(RegForm.waiting_conditions)
-        await message.answer("Отправь условия (или напиши 'нет')..")
+
+        await message.answer(
+            "Отправь условия (или напиши 'нет').."
+        )
 
 @dp.message(RegForm.waiting_players)
 async def process_players(message: types.Message, state: FSMContext):
+
     await state.update_data(players=message.text)
+
     await state.set_state(RegForm.waiting_conditions)
-    await message.answer("Отправь условия (или напиши 'нет')..")
+
+    await message.answer(
+        "Отправь условия (или напиши 'нет').."
+    )
 
 @dp.message(RegForm.waiting_conditions)
 async def process_cond(message: types.Message, state: FSMContext):
+
     await state.update_data(conditions=message.text)
+
     await state.set_state(RegForm.waiting_photo)
-    await message.answer("Отправь арт или видео (эдит)..")
+
+    await message.answer(
+        "Отправь арт или видео (эдит).."
+    )
 
 @dp.message(RegForm.waiting_photo, F.photo | F.video)
 async def process_photo1(message: types.Message, state: FSMContext):
+
     file_id = message.photo[-1].file_id if message.photo else message.video.file_id
-    await state.update_data(photo1=file_id, type1='photo' if message.photo else 'video')
+
+    await state.update_data(
+        photo1=file_id,
+        type1='photo' if message.photo else 'video'
+    )
+
     data = await state.get_data()
+
     if data['reg_type'] == 'reg_pb':
+
         await state.set_state(RegForm.waiting_photo2)
-        await message.answer("Отправь второй арт или видео..")
+
+        await message.answer(
+            "Отправь второй арт или видео.."
+        )
+
     else:
+
         await finalize_preview(message, state)
 
 @dp.message(RegForm.waiting_photo2, F.photo | F.video)
 async def process_photo2(message: types.Message, state: FSMContext):
+
     file_id = message.photo[-1].file_id if message.photo else message.video.file_id
-    await state.update_data(photo2=file_id, type2='photo' if message.photo else 'video')
+
+    await state.update_data(
+        photo2=file_id,
+        type2='photo' if message.photo else 'video'
+    )
+
     await finalize_preview(message, state)
 
 async def finalize_preview(message, state):
+
     data = await state.get_data()
+
     author_mention = f'<a href="tg://user?id={message.from_user.id}">{html.quote(message.from_user.first_name)}</a>'
-    
+
     if data['reg_type'] == 'reg_opinion':
-        unis = "\n".join([f"➤ {html.quote(u.strip())}" for u in data['universe'].replace(',', '\n').split('\n') if u.strip()])
+
+        unis = "\n".join([
+            f"➤ {html.quote(u.strip())}"
+            for u in data['universe'].replace(',', '\n').split('\n')
+            if u.strip()
+        ])
+
         conds = "Не" if data['conditions'].lower() == "нет" else html.quote(data['conditions'])
-    
-        custom_footer = "Ꮶᴛᴏ нибудь жᴇᴧᴀᴇᴛ дᴀᴛь ᴇʍу ᴏᴛᴨᴏᴩ ʙ ɸᴏᴩʍᴀᴛᴇ ᴨᴩуɸбᴀᴛᴛᴧ?"
-        
+
+        custom_footer = "Ꮶᴛᴏ нибудь жᴇᴧᴀᴛ дᴛь ᴇу ᴛᴨᴏᴩ ʙ ᴛᴇ уɸбᴛᴛᴧ?"
+
         caption = (
             f"<b>— автор мнения:</b> {author_mention}\n\n"
             f"<u><b>{html.quote(data['name'])}</b></u> <b>аннигилирует всех персонажей из ниже представленных вселенных:</b>\n"
@@ -440,15 +408,17 @@ async def finalize_preview(message, state):
             f"<blockquote><b>Условия баттла: {conds}</b></blockquote>\n"
             f"{custom_footer}"
         )
+
     else:
+
         chars = [html.quote(c.strip()) for c in data['name'].split('\n')]
         universes = [html.quote(u.strip()) for u in data['universe'].split('\n')]
         players = [html.quote(p.strip()) for p in data['players'].split('\n')]
-        
+
         p1, p2 = (chars[0] if len(chars)>0 else "P1"), (chars[1] if len(chars)>1 else "P2")
         u1, u2 = (universes[0] if len(universes)>0 else "U1"), (universes[1] if len(universes)>1 else "U2")
         pl1, pl2 = (players[0] if len(players)>0 else "@id1"), (players[1] if len(players)>1 else "@id2")
-        
+
         caption = (
             f"<blockquote><b>ПЕРСОНАЛЬНЫЙ ПРУФ-БАТТЛ</b></blockquote>\n\n"
             f"<b>Player 1:</b> {pl1}\n"
@@ -460,142 +430,176 @@ async def finalize_preview(message, state):
         )
 
     await state.update_data(final_caption=caption)
+
     if data['reg_type'] == 'reg_opinion':
+
         target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
-        await target(message.chat.id, data['photo1'], caption=caption, parse_mode="HTML", reply_markup=get_confirm_kb())
+
+        await target(
+            message.chat.id,
+            data['photo1'],
+            caption=caption,
+            parse_mode="HTML",
+            reply_markup=get_confirm_kb()
+        )
+
     else:
-        m1 = InputMediaPhoto(media=data['photo1'], caption=caption, parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=caption, parse_mode="HTML")
-        m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
-        await bot.send_media_group(message.chat.id, media=[m1, m2])
-        await message.answer("Проверь ПБ выше. На модерацию?", reply_markup=get_confirm_kb())
+
+        m1 = InputMediaPhoto(
+            media=data['photo1'],
+            caption=caption,
+            parse_mode="HTML"
+        ) if data['type1'] == 'photo' else InputMediaVideo(
+            media=data['photo1'],
+            caption=caption,
+            parse_mode="HTML"
+        )
+
+        m2 = InputMediaPhoto(
+            media=data['photo2']
+        ) if data['type2'] == 'photo' else InputMediaVideo(
+            media=data['photo2']
+        )
+
+        await bot.send_media_group(
+            message.chat.id,
+            media=[m1, m2]
+        )
+
+        await message.answer(
+            "Проверь ПБ выше. На модерацию?",
+            reply_markup=get_confirm_kb()
+        )
 
 @dp.callback_query(F.data == "confirm_send")
 async def send_to_mod(callback: types.CallbackQuery, state: FSMContext):
+
     data = await state.get_data()
+
     post_id = f"post_{callback.from_user.id}_{int(time.time())}"
+
     pending_posts[post_id] = data
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Опубликовать ✅", callback_data=f"publish_{post_id}"),
-        InlineKeyboardButton(text="Отменить ⛔", callback_data=f"reject_{post_id}")
+        InlineKeyboardButton(text="Опубликовать ", callback_data=f"publish_{post_id}"),
+        InlineKeyboardButton(text="Отменить ", callback_data=f"reject_{post_id}")
     ]])
-    
+
     if data['reg_type'] == 'reg_opinion':
+
         target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
-        await target(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
+
+        await target(
+            MOD_CHAT_ID,
+            data['photo1'],
+            caption=data['final_caption'],
+            parse_mode="HTML",
+            reply_markup=kb
+        )
+
     else:
-        m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
-        m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
+
+        m1 = InputMediaPhoto(
+            media=data['photo1'],
+            caption=data['final_caption'],
+            parse_mode="HTML"
+        ) if data['type1'] == 'photo' else InputMediaVideo(
+            media=data['photo1'],
+            caption=data['final_caption'],
+            parse_mode="HTML"
+        )
+
+        m2 = InputMediaPhoto(
+            media=data['photo2']
+        ) if data['type2'] == 'photo' else InputMediaVideo(
+            media=data['photo2']
+        )
+
         await bot.send_media_group(MOD_CHAT_ID, media=[m1, m2])
-        await bot.send_message(MOD_CHAT_ID, f" ПБ от {callback.from_user.first_name}", reply_markup=kb)
-        
+
+        await bot.send_message(
+            MOD_CHAT_ID,
+            f" ПБ от {callback.from_user.first_name}",
+            reply_markup=kb
+        )
+
     await callback.message.answer("✅ Отправлено модераторам!")
+
     await state.clear()
 
 @dp.callback_query(F.data.startswith("reject_"))
 async def reject_item(callback: types.CallbackQuery):
+
     post_id = callback.data.replace("reject_", "")
+
     if post_id in pending_posts:
         del pending_posts[post_id]
+
     await callback.message.delete()
-    await bot.send_message(MOD_CHAT_ID, "⛔ Публикация отменена.")
+
+    await bot.send_message(
+        MOD_CHAT_ID,
+        "⛔ Публикация отменена."
+    )
+
     await callback.answer("Отменено")
 
 @dp.callback_query(F.data.startswith("publish_"))
 async def publish_item(callback: types.CallbackQuery):
+
     post_id = callback.data.replace("publish_", "")
+
     data = pending_posts.get(post_id)
 
     if not data:
-        await callback.answer("Ошибка: пост уже в очереди!", show_alert=True)
+
+        await callback.answer(
+            "Ошибка: пост уже в очереди!",
+            show_alert=True
+        )
+
         try:
             await callback.message.delete()
         except:
             pass
+
         return
 
     publish_queue.append(data)
+
     moderator_stats[callback.from_user.id] = moderator_stats.get(callback.from_user.id, 0) + 1
-    
+
     try:
+
         await callback.message.delete()
+
         text = f"⏳ Пост от {callback.from_user.first_name} в очереди (3 мин)."
+
         await bot.send_message(MOD_CHAT_ID, text)
+
     except TelegramBadRequest:
         pass
 
     del pending_posts[post_id]
+
     await callback.answer("✅ Добавлено в очередь!")
 
 @dp.callback_query(F.data == "cancel")
 async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
-    await state.get_data()
-  post_id = f"post_{callback.from_user.id}_{int(time.time())}"
-    pending_posts[post_id] = data
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Опубликовать ✅", callback_data=f"publish_{post_id}"),
-        InlineKeyboardButton(text="Отменить ⛔", callback_data=f"reject_{post_id}")
-    ]])
-    
-    if data['reg_type'] == 'reg_opinion':
-        target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
-        await target(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
-    else:
-        m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
-        m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
-        await bot.send_media_group(MOD_CHAT_ID, media=[m1, m2])
-        await bot.send_message(MOD_CHAT_ID, f" ПБ от {callback.from_user.first_name}", reply_markup=kb)
-        
-    await callback.message.answer("✅ Отправлено модераторам!")
     await state.clear()
 
-@dp.callback_query(F.data.startswith("reject_"))
-async def reject_item(callback: types.CallbackQuery):
-    post_id = callback.data.replace("reject_", "")
-    if post_id in pending_posts:
-        del pending_posts[post_id]
-    await callback.message.delete()
-    await bot.send_message(MOD_CHAT_ID, "⛔ Публикация отменена.")
-    await callback.answer("Отменено")
-
-@dp.callback_query(F.data.startswith("publish_"))
-async def publish_item(callback: types.CallbackQuery):
-    post_id = callback.data.replace("publish_", "")
-    data = pending_posts.get(post_id)
-
-    if not data:
-        await callback.answer("Ошибка: пост уже в очереди!", show_alert=True)
-        try:
-            await callback.message.delete()
-        except:
-            pass
-        return
-
-    publish_queue.append(data)
-    moderator_stats[callback.from_user.id] = moderator_stats.get(callback.from_user.id, 0) + 1
-    
-    try:
-        await callback.message.delete()
-        text = f"⏳ Пост от {callback.from_user.first_name} в очереди (3 мин)."
-        await bot.send_message(MOD_CHAT_ID, text)
-    except TelegramBadRequest:
-        pass
-
-    del pending_posts[post_id]
-    await callback.answer("✅ Добавлено в очередь!")
-
-@dp.callback_query(F.data == "cancel")
-async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
-    await state.clear()
     await callback.message.answer("❌ Отменено.")
 
 async def main():
+
     print(">>> БОТ ЗАПУЩЕН <<<")
-    
+
     asyncio.create_task(publication_worker())
+
     await bot.delete_webhook(drop_pending_updates=True)
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())   
+    asyncio.run(main())
