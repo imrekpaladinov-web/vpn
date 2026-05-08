@@ -60,7 +60,7 @@ def get_client():
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://api.deepseek.com"
+        base_url="https://api.deepseek.com/v1"
     )
 
     return client
