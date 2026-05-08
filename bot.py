@@ -5,6 +5,9 @@ import os
 import random
 import google.generativeai as genai
 
+with open("ACF файловое.md", "r", encoding="utf-8") as f:
+    ACF_KNOWLEDGE = f.read()
+
 from aiogram import Bot, Dispatcher, types, F, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -258,13 +261,15 @@ async def acf_ai_chat(message: types.Message, state: FSMContext):
         for msg in history:
             history_text += f"{msg}\n"
 
-        prompt = f"""
+prompt = f"""
 Ты — ИСКЛЮЧИТЕЛЬНО эксперт по Anime Characters Fight Wiki.
 
 Главный сайт:
 https://anime-characters-fight.fandom.com
 
 Ты ОБЯЗАН:
+- использовать знания из файла ACF файловое.md как главный источник информации
+- считать файл ACF файловое.md своей базой знаний
 - использовать ТОЛЬКО информацию и систему ACF
 - никогда не использовать VS Battles Wiki
 - никогда не путать ACF и VSBW
