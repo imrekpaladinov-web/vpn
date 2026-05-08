@@ -260,8 +260,8 @@ async def acf_ai_chat(message: types.Message, state: FSMContext):
 
         for msg in history:
             history_text += f"{msg}\n"
-
-prompt = f"""
+            
+            prompt = f"""
 База знаний ACF:
 {ACF_KNOWLEDGE}
 Ты — ИСКЛЮЧИТЕЛЬНО эксперт по Anime Characters Fight Wiki.
