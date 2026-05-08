@@ -27,7 +27,7 @@ API_KEYS = [
     "sk-a1d558434cbf4573a5512e42b8b3f601"
 ]
 
-MODEL_NAME = "deepseek-chat"
+MODEL_NAME = "deepseek-v4-flash"
 
 MAX_TOKENS = 1000
 
