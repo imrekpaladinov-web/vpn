@@ -3,6 +3,7 @@ import logging
 import time
 import os
 import random
+import json
 from aiogram import Bot, Dispatcher, types, F, html
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -29,6 +30,14 @@ last_publish_time = 0
 
 moderator_stats = {}
 
+ELO_FILE = "elo.json"
+
+if os.path.exists(ELO_FILE):
+    with open(ELO_FILE, "r", encoding="utf-8") as f:
+        elo_data = json.load(f)
+else:
+    elo_data = {}
+
 class RegForm(StatesGroup):
     waiting_name = State()
     waiting_universe = State()
@@ -36,6 +45,65 @@ class RegForm(StatesGroup):
     waiting_conditions = State()
     waiting_photo = State()
     waiting_photo2 = State()
+
+def save_elo():
+    with open(ELO_FILE, "w", encoding="utf-8") as f:
+        json.dump(elo_data, f, ensure_ascii=False, indent=4)
+
+def create_player(user_id):
+    if str(user_id) not in elo_data:
+        elo_data[str(user_id)] = {
+            "elo": 0,
+            "calibration_games": 0,
+            "calibration_wins": 0,
+            "calibrated": False
+        }
+        save_elo()
+
+def get_calibration_elo(wins):
+    if wins == 0:
+        return random.randint(20, 40)
+    elif wins == 1:
+        return random.randint(70, 120)
+    elif wins == 2:
+        return random.randint(140, 200)
+    else:
+        return random.randint(220, 250)
+
+def process_win(player):
+    elo = player["elo"]
+
+    if elo < 500:
+        gain = random.randint(80, 90)
+
+    elif elo < 1000:
+        gain = random.randint(60, 70)
+
+    else:
+        gain = 50
+
+    player["elo"] += gain
+    return gain
+
+def process_lose(player):
+    elo = player["elo"]
+
+    if elo < 500:
+        lose = 30
+
+    elif elo < 1000:
+        lose = 35
+
+    else:
+        lose = 40
+
+    old_elo = player["elo"]
+
+    player["elo"] = max(0, player["elo"] - lose)
+
+    removed = old_elo - player["elo"]
+
+    return removed
 
 def get_main_kb():
     buttons = [[InlineKeyboardButton(text="📝 Мнение ", callback_data="reg_opinion")],
@@ -129,6 +197,38 @@ async def publication_worker():
                     except Exception as e:
                         logging.error(f"Ошибка отправки комментария: {e}")
 
+                    for username in clean_players:
+                        try:
+                            chat = await bot.get_chat(username)
+                            user_id = str(chat.id)
+
+                            create_player(user_id)
+
+                            kb_elo = InlineKeyboardMarkup(
+                                inline_keyboard=[
+                                    [
+                                        InlineKeyboardButton(
+                                            text="Да ✅",
+                                            callback_data=f"pbwin_{user_id}"
+                                        ),
+                                        InlineKeyboardButton(
+                                            text="Нет ⛔",
+                                            callback_data=f"pclose_{user_id}"
+                                        )
+                                    ]
+                                ]
+                            )
+
+                            await bot.send_message(
+                                MOD_CHAT_ID,
+                                f"Игрок <a href='tg://user?id={user_id}'>{html.quote(chat.first_name)}</a> выиграл ПБ?",
+                                parse_mode="HTML",
+                                reply_markup=kb_elo
+                            )
+
+                        except Exception as e:
+                            logging.error(f"Ошибка ELO-модерации: {e}")
+
             except Exception as e:
                 logging.error(f"Ошибка публикации: {e}")
         await asyncio.sleep(10)
@@ -150,6 +250,124 @@ async def show_rating(message: types.Message):
         text += f"{i}. <a href='tg://user?id={user_id}'>Модератор</a> — {count}\n"
     
     await message.answer(text, parse_mode="HTML")
+
+@dp.message(Command("reyt_elo"))
+async def elo_rating(message: types.Message):
+
+    target = message.reply_to_message.from_user if message.reply_to_message else message.from_user
+
+    user_id = str(target.id)
+
+    if user_id not in elo_data:
+
+        await message.answer(
+            "Игрок не завершил калибровку, очки ELO: 0🔥."
+        )
+        return
+
+    player = elo_data[user_id]
+
+    if not player["calibrated"]:
+
+        await message.answer(
+            f"Игрок не завершил калибровку, очки ELO: 0🔥."
+        )
+        return
+
+    await message.answer(
+        f"Очки ELO: {player['elo']}🔥"
+    )
+
+@dp.callback_query(F.data.startswith("pbwin_"))
+async def pb_win(callback: types.CallbackQuery):
+
+    user_id = callback.data.replace("pbwin_", "")
+
+    create_player(user_id)
+
+    player = elo_data[user_id]
+
+    if not player["calibrated"]:
+
+        player["calibration_games"] += 1
+        player["calibration_wins"] += 1
+
+        if player["calibration_games"] >= 3:
+
+            wins = player["calibration_wins"]
+
+            elo = get_calibration_elo(wins)
+
+            player["elo"] = elo
+            player["calibrated"] = True
+
+            await callback.message.answer(
+                f"Игрок получил калибровочный рейтинг: {elo}🔥"
+            )
+
+        else:
+
+            await callback.message.answer(
+                f"Победа засчитана.\n"
+                f"Калибровка: {player['calibration_games']}/3"
+            )
+
+    else:
+
+        gain = process_win(player)
+
+        await callback.message.answer(
+            f"Игрок получил +{gain} ELO🔥"
+        )
+
+    save_elo()
+
+    await callback.answer("Победа засчитана ✅")
+
+@dp.callback_query(F.data.startswith("pclose_"))
+async def pb_lose(callback: types.CallbackQuery):
+
+    user_id = callback.data.replace("pclose_", "")
+
+    create_player(user_id)
+
+    player = elo_data[user_id]
+
+    if not player["calibrated"]:
+
+        player["calibration_games"] += 1
+
+        if player["calibration_games"] >= 3:
+
+            wins = player["calibration_wins"]
+
+            elo = get_calibration_elo(wins)
+
+            player["elo"] = elo
+            player["calibrated"] = True
+
+            await callback.message.answer(
+                f"Игрок получил калибровочный рейтинг: {elo}🔥"
+            )
+
+        else:
+
+            await callback.message.answer(
+                f"Поражение засчитано.\n"
+                f"Калибровка: {player['calibration_games']}/3"
+            )
+
+    else:
+
+        removed = process_lose(player)
+
+        await callback.message.answer(
+            f"Игрок потерял -{removed} ELO🔥"
+        )
+
+    save_elo()
+
+    await callback.answer("Поражение засчитано ⛔")
 
 @dp.callback_query(F.data.in_(["reg_opinion", "reg_pb"]))
 async def start_reg(callback: types.CallbackQuery, state: FSMContext):
@@ -288,7 +506,64 @@ async def publish_item(callback: types.CallbackQuery):
     post_id = callback.data.replace("publish_", "")
     data = pending_posts.get(post_id)
 
-    # ИСПРАВЛЕНА СИНТАКСИЧЕСКАЯ ОШИБКА
+    if not data:
+        await callback.answer("Ошибка: пост уже в очереди!", show_alert=True)
+        try:
+            await callback.message.delete()
+        except:
+            pass
+        return
+
+    publish_queue.append(data)
+    moderator_stats[callback.from_user.id] = moderator_stats.get(callback.from_user.id, 0) + 1
+    
+    try:
+        await callback.message.delete()
+        text = f"⏳ Пост от {callback.from_user.first_name} в очереди (3 мин)."
+        await bot.send_message(MOD_CHAT_ID, text)
+    except TelegramBadRequest:
+        pass
+
+    del pending_posts[post_id]
+    await callback.answer("✅ Добавлено в очередь!")
+
+@dp.callback_query(F.data == "cancel")
+async def cancel_reg(callback: types.CallbackQuery, state: FSMContext):
+    await state.get_data()
+  post_id = f"post_{callback.from_user.id}_{int(time.time())}"
+    pending_posts[post_id] = data
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Опубликовать ✅", callback_data=f"publish_{post_id}"),
+        InlineKeyboardButton(text="Отменить ⛔", callback_data=f"reject_{post_id}")
+    ]])
+    
+    if data['reg_type'] == 'reg_opinion':
+        target = bot.send_photo if data['type1'] == 'photo' else bot.send_video
+        await target(MOD_CHAT_ID, data['photo1'], caption=data['final_caption'], parse_mode="HTML", reply_markup=kb)
+    else:
+        m1 = InputMediaPhoto(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML") if data['type1'] == 'photo' else InputMediaVideo(media=data['photo1'], caption=data['final_caption'], parse_mode="HTML")
+        m2 = InputMediaPhoto(media=data['photo2']) if data['type2'] == 'photo' else InputMediaVideo(media=data['photo2'])
+        await bot.send_media_group(MOD_CHAT_ID, media=[m1, m2])
+        await bot.send_message(MOD_CHAT_ID, f" ПБ от {callback.from_user.first_name}", reply_markup=kb)
+        
+    await callback.message.answer("✅ Отправлено модераторам!")
+    await state.clear()
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_item(callback: types.CallbackQuery):
+    post_id = callback.data.replace("reject_", "")
+    if post_id in pending_posts:
+        del pending_posts[post_id]
+    await callback.message.delete()
+    await bot.send_message(MOD_CHAT_ID, "⛔ Публикация отменена.")
+    await callback.answer("Отменено")
+
+@dp.callback_query(F.data.startswith("publish_"))
+async def publish_item(callback: types.CallbackQuery):
+    post_id = callback.data.replace("publish_", "")
+    data = pending_posts.get(post_id)
+
     if not data:
         await callback.answer("Ошибка: пост уже в очереди!", show_alert=True)
         try:
@@ -323,4 +598,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main())   
