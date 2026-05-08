@@ -27,7 +27,7 @@ API_KEYS = [
     "sk-a1d558434cbf4573a5512e42b8b3f601"
 ]
 
-MODEL_NAME = "deepseek-v4-flash"
+MODEL_NAME = "deepseek-chat"  # ИСПРАВЛЕНО: правильное название модели
 
 MAX_TOKENS = 1000
 
@@ -60,7 +60,7 @@ def get_client():
 
     client = OpenAI(
         api_key=api_key,
-        base_url="https://api.deepseek.com/v1"
+        base_url="https://api.deepseek.com"  # ИСПРАВЛЕНО: убрали /v1
     )
 
     return client
@@ -194,13 +194,15 @@ async def ai_chat(message: types.Message):
 
             error_text = str(e).lower()
 
-            print(f"Ошибка ключа: {e}")
+            print(f"Ошибка ключа {current_key_index}: {e}")  # улучшен лог
 
             if (
                 "429" in error_text
                 or "rate limit" in error_text
                 or "quota" in error_text
                 or "insufficient" in error_text
+                or "model" in error_text      # ДОБАВЛЕНО: ловим ошибку модели
+                or "invalid" in error_text    # ДОБАВЛЕНО: ловим невалидный ключ
             ):
 
                 switch_api()
