@@ -3,7 +3,7 @@ import logging
 import os
 import time
 
-from openai import OpenAI
+import cohere
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -12,17 +12,17 @@ from aiogram.filters import Command
 # CONFIG
 # =========================
 
-BOT_TOKEN = "8620489449:AAHwbVrlg0J74MGAZRoQ9yO1_7ZWokQ3xQQ"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-API_KEYS = [
-    os.getenv("OPENROUTER_API_KEY")
-]
+COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
-MODEL_NAME = "meta-llama/llama-3.3-70b-instruct:free"
+MODEL_NAME = "command-r"
 
-MAX_TOKENS = 1000
+MAX_TOKENS = 700
 
-COOLDOWN = 20
+COOLDOWN = 30
+
+MAX_DAILY_REQUESTS = 10
 
 # =========================
 # LOGGING
@@ -38,32 +38,12 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # =========================
-# API ROTATION
+# COHERE CLIENT
 # =========================
 
-current_key_index = 0
-
-def get_client():
-
-    global current_key_index
-
-    api_key = API_KEYS[current_key_index]
-
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://openrouter.ai/api/v1"
-    )
-
-    return client
-
-def switch_api():
-
-    global current_key_index
-
-    current_key_index += 1
-
-    if current_key_index >= len(API_KEYS):
-        current_key_index = 0
+client = cohere.ClientV2(
+    api_key=COHERE_API_KEY
+)
 
 # =========================
 # LOAD KNOWLEDGE FILE
@@ -89,6 +69,12 @@ except Exception as e:
 user_cooldowns = {}
 
 # =========================
+# DAILY LIMITS
+# =========================
+
+daily_limits = {}
+
+# =========================
 # START
 # =========================
 
@@ -96,7 +82,7 @@ user_cooldowns = {}
 async def cmd_start(message: types.Message):
 
     await message.answer(
-        "Привет я Anime Characters Fight AI ! Я готов помочь тебе с любыми вопросами. Пиши свой вопрос сюда, прямо в чат. 🌐"
+        "Привет я Anime Characters Fight AI ! Я готов помочь тебе с любыми вопросами. 🌐"
     )
 
 # =========================
@@ -110,6 +96,10 @@ async def ai_chat(message: types.Message):
 
     current_time = time.time()
 
+    # =========================
+    # COOLDOWN
+    # =========================
+
     if user_id in user_cooldowns:
 
         last_time = user_cooldowns[user_id]
@@ -119,26 +109,54 @@ async def ai_chat(message: types.Message):
             wait_time = int(COOLDOWN - (current_time - last_time))
 
             await message.answer(
-                f"Вы уже отправляли запрос, попробуйте через {wait_time} секунд."
+                f"⏳ Подождите {wait_time} секунд перед следующим запросом."
             )
 
             return
 
     user_cooldowns[user_id] = current_time
 
+    # =========================
+    # DAILY LIMIT
+    # =========================
+
+    today = time.strftime("%Y-%m-%d")
+
+    if user_id not in daily_limits:
+
+        daily_limits[user_id] = {
+            "date": today,
+            "count": 0
+        }
+
+    if daily_limits[user_id]["date"] != today:
+
+        daily_limits[user_id] = {
+            "date": today,
+            "count": 0
+        }
+
+    if daily_limits[user_id]["count"] >= MAX_DAILY_REQUESTS:
+
+        await message.answer(
+            "❌ Вы исчерпали лимит 10 запросов на сегодня."
+        )
+
+        return
+
+    daily_limits[user_id]["count"] += 1
+
+    # =========================
+    # USER MESSAGE
+    # =========================
+
     user_question = message.text
 
     wait_msg = await message.answer("🤖 AI думает...")
 
-    success = False
+    try:
 
-    for _ in range(len(API_KEYS)):
-
-        try:
-
-            client = get_client()
-
-            system_prompt = f"""
+        system_prompt = f"""
 Ты — эксперт по Anime Characters Fight Wiki (ACF).
 
 Ты ОБЯЗАН отвечать ТОЛЬКО используя информацию из базы знаний ниже.
@@ -151,73 +169,38 @@ async def ai_chat(message: types.Message):
 {ACF_KNOWLEDGE}
 """
 
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": user_question
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=MAX_TOKENS,
-                extra_headers={
-                    "HTTP-Referer": "https://t.me/ACF_AI_bot",
-                    "X-Title": "ACF AI"
+        response = client.chat(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_question
                 }
-            )
+            ],
+            temperature=0.7,
+            max_tokens=MAX_TOKENS
+        )
 
-            answer = response.choices[0].message.content
+        answer = response.message.content[0].text
 
-            if not answer:
-                answer = "AI не смог дать ответ."
+        if not answer:
+            answer = "AI не смог дать ответ."
 
-            if len(answer) > 4000:
-                answer = answer[:4000]
+        if len(answer) > 4000:
+            answer = answer[:4000]
 
-            await wait_msg.edit_text(answer)
+        await wait_msg.edit_text(answer)
 
-            success = True
+    except Exception as e:
 
-            break
-
-        except Exception as e:
-
-            error_text = str(e).lower()
-
-            print(f"Ошибка ключа {current_key_index}: {e}")
-
-            if (
-                "429" in error_text
-                or "rate limit" in error_text
-                or "quota" in error_text
-                or "insufficient" in error_text
-                or "model" in error_text
-                or "invalid" in error_text
-            ):
-
-                switch_api()
-
-                continue
-
-            else:
-
-                await wait_msg.edit_text(
-                    f"❌ Ошибка AI: {e}"
-                )
-
-                success = True
-
-                break
-
-    if not success:
+        print(f"Ошибка AI: {e}")
 
         await wait_msg.edit_text(
-            "❌ Все API ключи временно перегружены. Отправьте запрос позже."
+            f"❌ Ошибка AI: {e}"
         )
 
 # =========================
