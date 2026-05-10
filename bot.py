@@ -3,7 +3,7 @@ import logging
 import time
 import os
 import random
-
+ 
 from openai import OpenAI
 
 from aiogram import Bot, Dispatcher, types, F, html
