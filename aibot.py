@@ -12,7 +12,7 @@ from aiogram.filters import Command
 # CONFIG
 # =========================
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_AI")
 
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
