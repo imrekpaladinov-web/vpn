@@ -1,22 +1,20 @@
 import asyncio
 import logging
 import os
-import time
 import re
-from difflib import SequenceMatcher
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 # =========================
 # CONFIG
 # =========================
 
-BOT_TOKEN = os.getenv("BOT_AI")
-
-COOLDOWN = 30
-
-MAX_DAILY_REQUESTS = 10
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # =========================
 # LOGGING
@@ -49,7 +47,7 @@ except Exception as e:
     ACF_KNOWLEDGE = ""
 
 # =========================
-# SPLIT TEXT
+# SPLIT INTO CHUNKS
 # =========================
 
 chunks = []
@@ -60,18 +58,30 @@ for chunk in raw_chunks:
 
     chunk = chunk.strip()
 
-    if len(chunk) > 30:
+    if len(chunk) > 40:
         chunks.append(chunk)
 
 print(f">>> ЗАГРУЖЕНО ЧАНКОВ: {len(chunks)} <<<")
 
 # =========================
-# USER LIMITS
+# LOAD AI MODEL
 # =========================
 
-user_cooldowns = {}
+print(">>> ЗАГРУЖАЕТСЯ SEMANTIC AI МОДЕЛЬ <<<")
 
-daily_limits = {}
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+print(">>> МОДЕЛЬ ЗАГРУЖЕНА <<<")
+
+# =========================
+# CREATE EMBEDDINGS
+# =========================
+
+print(">>> СОЗДАЮТСЯ EMBEDDINGS <<<")
+
+chunk_embeddings = model.encode(chunks)
+
+print(">>> EMBEDDINGS ГОТОВЫ <<<")
 
 # =========================
 # SIMPLE WORD REPLACEMENTS
@@ -91,46 +101,30 @@ simple_words = {
 }
 
 # =========================
-# START
+# FIND BEST CHUNK
 # =========================
 
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
+def find_best_chunks(query, top_k=3):
 
-    await message.answer(
-        "Привет я Anime Characters Fight AI 🌐\n\n"
-        "Я отвечаю используя базу знаний ACF файловое.txt.\n"
-        "Ты можешь спрашивать про tier'ы, scaling, cosmology и другое."
-    )
+    query_embedding = model.encode([query])
 
-# =========================
-# SEARCH FUNCTION
-# =========================
+    similarities = cosine_similarity(
+        query_embedding,
+        chunk_embeddings
+    )[0]
 
-def similarity(a, b):
+    top_indices = np.argsort(similarities)[-top_k:][::-1]
 
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+    results = []
 
-def find_best_chunk(query):
+    for idx in top_indices:
 
-    best_score = 0
-    best_chunk = None
+        results.append(chunks[idx])
 
-    for chunk in chunks:
-
-        score = similarity(query, chunk)
-
-        if query.lower() in chunk.lower():
-            score += 1
-
-        if score > best_score:
-            best_score = score
-            best_chunk = chunk
-
-    return best_chunk
+    return results
 
 # =========================
-# SIMPLE EXPLAINER
+# SIMPLIFY TEXT
 # =========================
 
 def simplify_text(text):
@@ -146,121 +140,112 @@ def simplify_text(text):
             flags=re.IGNORECASE
         )
 
+    return simplified
+
+# =========================
+# FORMAT RESPONSE
+# =========================
+
+def generate_answer(query, found_chunks):
+
+    combined_text = "\n\n".join(found_chunks)
+
+    query_lower = query.lower()
+
+    # =========================
+    # SIMPLE EXPLAIN MODE
+    # =========================
+
+    if (
+        "простыми словами" in query_lower
+        or "объясни" in query_lower
+        or "легко" in query_lower
+        or "как учитель" in query_lower
+    ):
+
+        simplified = simplify_text(combined_text)
+
+        return (
+            "📘 Объяснение:\n\n"
+            + simplified
+        )
+
+    # =========================
+    # WHAT IS MODE
+    # =========================
+
+    if (
+        "что такое" in query_lower
+        or "что значит" in query_lower
+        or "что означает" in query_lower
+    ):
+
+        return (
+            "📚 Определение:\n\n"
+            + combined_text
+        )
+
+    # =========================
+    # DEFAULT
+    # =========================
+
     return (
-        "📘 Простыми словами:\n\n"
-        + simplified
+        "📚 Информация из базы знаний:\n\n"
+        + combined_text
     )
 
 # =========================
-# AI CHAT
+# START
+# =========================
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+
+    await message.answer(
+        "🌐 Привет! Я Anime Characters Fight AI.\n\n"
+        "Я отвечаю используя базу знаний ACF.\n"
+        "Ты можешь спрашивать:\n"
+        "- Что такое 1-A\n"
+        "- Объясни outerversal\n"
+        "- Кто сильнее\n"
+        "- Объясни простыми словами\n"
+        "- Как работает tiering"
+    )
+
+# =========================
+# CHAT
 # =========================
 
 @dp.message()
 async def ai_chat(message: types.Message):
 
-    user_id = message.from_user.id
-
-    current_time = time.time()
-
-    # =========================
-    # COOLDOWN
-    # =========================
-
-    if user_id in user_cooldowns:
-
-        last_time = user_cooldowns[user_id]
-
-        if current_time - last_time < COOLDOWN:
-
-            wait_time = int(COOLDOWN - (current_time - last_time))
-
-            await message.answer(
-                f"⏳ Подождите {wait_time} секунд."
-            )
-
-            return
-
-    user_cooldowns[user_id] = current_time
-
-    # =========================
-    # DAILY LIMIT
-    # =========================
-
-    today = time.strftime("%Y-%m-%d")
-
-    if user_id not in daily_limits:
-
-        daily_limits[user_id] = {
-            "date": today,
-            "count": 0
-        }
-
-    if daily_limits[user_id]["date"] != today:
-
-        daily_limits[user_id] = {
-            "date": today,
-            "count": 0
-        }
-
-    if daily_limits[user_id]["count"] >= MAX_DAILY_REQUESTS:
-
-        await message.answer(
-            "❌ Вы исчерпали лимит запросов на сегодня."
-        )
-
-        return
-
-    daily_limits[user_id]["count"] += 1
-
-    # =========================
-    # QUESTION
-    # =========================
-
     query = message.text.strip()
 
-    wait_msg = await message.answer("🔍 Ищу информацию...")
+    wait_msg = await message.answer(
+        "🧠 Анализирую информацию..."
+    )
 
-    # =========================
-    # FIND BEST ANSWER
-    # =========================
+    try:
 
-    best_chunk = find_best_chunk(query)
+        best_chunks = find_best_chunks(query)
 
-    if not best_chunk:
+        answer = generate_answer(
+            query,
+            best_chunks
+        )
+
+        if len(answer) > 4000:
+            answer = answer[:4000]
+
+        await wait_msg.edit_text(answer)
+
+    except Exception as e:
+
+        print(f"Ошибка AI: {e}")
 
         await wait_msg.edit_text(
-            "❌ Я не нашёл информацию в базе знаний."
+            f"❌ Ошибка AI: {e}"
         )
-
-        return
-
-    # =========================
-    # SIMPLE MODE
-    # =========================
-
-    simple_keywords = [
-        "простыми словами",
-        "объясни легко",
-        "объясни просто",
-        "легко объясни",
-        "как учитель"
-    ]
-
-    if any(word in query.lower() for word in simple_keywords):
-
-        answer = simplify_text(best_chunk)
-
-    else:
-
-        answer = (
-            "📚 Информация из базы знаний:\n\n"
-            + best_chunk
-        )
-
-    if len(answer) > 4000:
-        answer = answer[:4000]
-
-    await wait_msg.edit_text(answer)
 
 # =========================
 # MAIN
@@ -270,7 +255,9 @@ async def main():
 
     print(">>> ACF AI ЗАПУЩЕН <<<")
 
-    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.delete_webhook(
+        drop_pending_updates=True
+    )
 
     await dp.start_polling(bot)
 
