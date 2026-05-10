@@ -1,90 +1,52 @@
 import asyncio
 import os
 import logging
-import torch
-import numpy as np
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from sentence_transformers import SentenceTransformer
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from ctransformers import AutoModelForCausalLM
 
-# =========================
-# CONFIG
-# =========================
+# Настройки
 BOT_TOKEN = os.getenv("BOT_AI")
-# Модель для логики (умная и легкая)
-LLM_MODEL = "MBZUAI/LaMini-Flan-T5-248M" 
-# Модель для поиска по файлу
-EMBED_MODEL = "all-MiniLM-L6-v2"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# =========================
-# ЗАГРУЗКА ИИ (ЭТО ЗАЙМЕТ ВРЕМЯ ПРИ ЗАПУСКЕ)
-# =========================
-print(">>> ЗАГРУЗКА МОДЕЛЕЙ...")
-search_model = SentenceTransformer(EMBED_MODEL)
+# Загружаем ОЧЕНЬ сжатую, но умную модель
+# Она скачается сама, весит около 1.2 ГБ, но в RAM занимает мало
+print(">>> ЗАГРУЗКА ИНТЕЛЛЕКТА (GGUF)...")
+llm = AutoModelForCausalLM.from_pretrained(
+    "TheBloke/Phi-3-mini-4k-instruct-GGUF",
+    model_file="phi-3-mini-4k-instruct.Q4_K_M.gguf",
+    model_type="phi3"
+)
+print(">>> НЕЙРОСЕТЬ ACF ГОТОВА <<<")
 
-# Загружаем генератор текста
-tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL)
-model_llm = AutoModelForSeq2SeqLM.from_pretrained(LLM_MODEL)
-generator = pipeline("text2text-generation", model=model_llm, tokenizer=tokenizer)
-print(">>> ИИ ГОТОВ К БОЮ <<<")
+# Загружаем базу данных
+with open("ACF файловое.txt", "r", encoding="utf-8") as f:
+    ACF_KNOWLEDGE = f.read()[:1500] # Берем самый важный кусок для контекста
 
-# =========================
-# РАБОТА С БАЗОЙ ЗНАНИЙ
-# =========================
-try:
-    with open("ACF файловое.txt", "r", encoding="utf-8") as f:
-        content = f.read()
-    chunks = [c.strip() for c in content.split("\n\n") if len(c.strip()) > 30]
-    chunk_embeddings = search_model.encode(chunks, convert_to_tensor=True)
-    print(f">>> БАЗА ЗАГРУЖЕНА: {len(chunks)} ЧАНКОВ")
-except Exception as e:
-    print(f"Ошибка базы: {e}")
-    chunks = []
-
-# =========================
-# ЛОГИКА УМНОГО ОТВЕТА
-# =========================
-def get_best_context(query):
-    query_enc = search_model.encode(query, convert_to_tensor=True)
-    # Считаем сходство через torch (вместо scikit-learn)
-    cos_scores = torch.nn.functional.cosine_similarity(query_enc, chunk_embeddings)
-    top_results = torch.topk(cos_scores, k=min(3, len(chunks)))
-    indices = top_results.indices.tolist()
-    return "\n\n".join([chunks[i] for i in indices])
-
-async def generate_smart_answer(query):
-    context = get_best_context(query)
+async def get_ai_response(user_query):
+    # Промпт, который заставляет бота быть экспертом и говорить по-русски
+    prompt = f"<|system|>\nТы эксперт по системе ACF Wiki. Отвечай своими словами, используя знания: {ACF_KNOWLEDGE}<|end|>\n<|user|>\n{user_query}<|end|>\n<|assistant|>\n"
     
-    # Инструкция для ИИ (Промпт)
-    # Мы просим его отвечать на русском и быть экспертом
-    prompt = f"Use the following ACF context to answer the question in Russian. Be expert and conversational.\nContext: {context}\nQuestion: {query}\nAnswer:"
-    
+    # Генерация (запускаем в потоке, чтобы бот не «висел»)
     loop = asyncio.get_event_loop()
-    # Запускаем тяжелую генерацию в отдельном потоке, чтобы бот не зависал
-    result = await loop.run_in_executor(None, lambda: generator(prompt, max_length=512, do_sample=True, temperature=0.7))
-    return result[0]['generated_text']
+    response = await loop.run_in_executor(None, lambda: llm(prompt, max_new_tokens=512, temperature=0.7))
+    return response
 
-# =========================
-# ХЕНДЛЕРЫ
-# =========================
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Привет! Я твоя персональная нейросеть по ACF. Спрашивай что угодно, я не просто копирую базу, я её понимаю!")
+    await message.answer("Привет! Я — ИИ-эксперт по ACF. Я не просто копирую базу, я понимаю иерархию уровней. Спрашивай!")
 
 @dp.message()
-async def ai_chat(message: types.Message):
-    wait_msg = await message.answer("🧠 Думаю...")
+async def chat(message: types.Message):
+    wait = await message.answer("🧠 Анализирую уровни реальности...")
     try:
-        answer = await generate_smart_answer(message.text)
-        await wait_msg.edit_text(answer)
+        reply = await get_ai_response(message.text)
+        await wait.edit_text(reply)
     except Exception as e:
-        logging.error(f"Ошибка: {e}")
-        await wait_msg.edit_text("Ой, что-то в моих нейронных связях замкнуло...")
+        await wait.edit_text(f"Ошибка в нейросетях: {e}")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
