@@ -3,3 +3,4 @@ aiohttp
 pydantic==2.7.1
 google-generativeai
 openai
+cohere
