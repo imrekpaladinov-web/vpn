@@ -1,10 +1,7 @@
 aiogram==3.7.0
 aiohttp
 pydantic==2.7.1
-google-generativeai
-openai
-cohere
 sentence-transformers
-torch
+transformers
+torch --index-url https://download.pytorch.org/whl/cpu
 numpy
-scikit-learn
