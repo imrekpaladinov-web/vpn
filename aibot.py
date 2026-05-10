@@ -14,7 +14,7 @@ import numpy as np
 # CONFIG
 # =========================
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_AI")
 
 # =========================
 # LOGGING
