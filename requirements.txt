@@ -4,3 +4,7 @@ pydantic==2.7.1
 google-generativeai
 openai
 cohere
+sentence-transformers
+torch
+numpy
+scikit-learn
