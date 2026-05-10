@@ -16,7 +16,7 @@ BOT_TOKEN = os.getenv("BOT_AI")
 
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 
-MODEL_NAME = "command-r"
+MODEL_NAME = "command-a"
 
 MAX_TOKENS = 700
 
