@@ -1,265 +1,95 @@
 import asyncio
-import logging
 import os
-import re
-
+import logging
+import torch
+import numpy as np
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
 # =========================
 # CONFIG
 # =========================
-
 BOT_TOKEN = os.getenv("BOT_AI")
-
-# =========================
-# LOGGING
-# =========================
+# Модель для логики (умная и легкая)
+LLM_MODEL = "MBZUAI/LaMini-Flan-T5-248M" 
+# Модель для поиска по файлу
+EMBED_MODEL = "all-MiniLM-L6-v2"
 
 logging.basicConfig(level=logging.INFO)
-
-# =========================
-# BOT
-# =========================
-
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # =========================
-# LOAD KNOWLEDGE FILE
+# ЗАГРУЗКА ИИ (ЭТО ЗАЙМЕТ ВРЕМЯ ПРИ ЗАПУСКЕ)
 # =========================
+print(">>> ЗАГРУЗКА МОДЕЛЕЙ...")
+search_model = SentenceTransformer(EMBED_MODEL)
 
+# Загружаем генератор текста
+tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL)
+model_llm = AutoModelForSeq2SeqLM.from_pretrained(LLM_MODEL)
+generator = pipeline("text2text-generation", model=model_llm, tokenizer=tokenizer)
+print(">>> ИИ ГОТОВ К БОЮ <<<")
+
+# =========================
+# РАБОТА С БАЗОЙ ЗНАНИЙ
+# =========================
 try:
-
     with open("ACF файловое.txt", "r", encoding="utf-8") as f:
-        ACF_KNOWLEDGE = f.read()
-
-    print(">>> БАЗА ЗНАНИЙ ЗАГРУЖЕНА <<<")
-
+        content = f.read()
+    chunks = [c.strip() for c in content.split("\n\n") if len(c.strip()) > 30]
+    chunk_embeddings = search_model.encode(chunks, convert_to_tensor=True)
+    print(f">>> БАЗА ЗАГРУЖЕНА: {len(chunks)} ЧАНКОВ")
 except Exception as e:
-
-    print(f"Ошибка загрузки файла: {e}")
-
-    ACF_KNOWLEDGE = ""
+    print(f"Ошибка базы: {e}")
+    chunks = []
 
 # =========================
-# SPLIT INTO CHUNKS
+# ЛОГИКА УМНОГО ОТВЕТА
 # =========================
+def get_best_context(query):
+    query_enc = search_model.encode(query, convert_to_tensor=True)
+    # Считаем сходство через torch (вместо scikit-learn)
+    cos_scores = torch.nn.functional.cosine_similarity(query_enc, chunk_embeddings)
+    top_results = torch.topk(cos_scores, k=min(3, len(chunks)))
+    indices = top_results.indices.tolist()
+    return "\n\n".join([chunks[i] for i in indices])
 
-chunks = []
-
-raw_chunks = ACF_KNOWLEDGE.split("\n\n")
-
-for chunk in raw_chunks:
-
-    chunk = chunk.strip()
-
-    if len(chunk) > 40:
-        chunks.append(chunk)
-
-print(f">>> ЗАГРУЖЕНО ЧАНКОВ: {len(chunks)} <<<")
-
-# =========================
-# LOAD AI MODEL
-# =========================
-
-print(">>> ЗАГРУЖАЕТСЯ SEMANTIC AI МОДЕЛЬ <<<")
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-print(">>> МОДЕЛЬ ЗАГРУЖЕНА <<<")
+async def generate_smart_answer(query):
+    context = get_best_context(query)
+    
+    # Инструкция для ИИ (Промпт)
+    # Мы просим его отвечать на русском и быть экспертом
+    prompt = f"Use the following ACF context to answer the question in Russian. Be expert and conversational.\nContext: {context}\nQuestion: {query}\nAnswer:"
+    
+    loop = asyncio.get_event_loop()
+    # Запускаем тяжелую генерацию в отдельном потоке, чтобы бот не зависал
+    result = await loop.run_in_executor(None, lambda: generator(prompt, max_length=512, do_sample=True, temperature=0.7))
+    return result[0]['generated_text']
 
 # =========================
-# CREATE EMBEDDINGS
+# ХЕНДЛЕРЫ
 # =========================
-
-print(">>> СОЗДАЮТСЯ EMBEDDINGS <<<")
-
-chunk_embeddings = model.encode(chunks)
-
-print(">>> EMBEDDINGS ГОТОВЫ <<<")
-
-# =========================
-# SIMPLE WORD REPLACEMENTS
-# =========================
-
-simple_words = {
-    "трансцендентный": "стоящий выше всего",
-    "концептуальный": "связанный с идеями",
-    "измерение": "уровень пространства",
-    "иерархия": "система уровней",
-    "метафизический": "существующий вне обычного мира",
-    "бесконечность": "без конца",
-    "пространство-время": "мир и время",
-    "гиперверсальный": "намного выше мультивселенных",
-    "аутер": "существующий вне измерений",
-    "димензиональность": "уровень измерений"
-}
-
-# =========================
-# FIND BEST CHUNK
-# =========================
-
-def find_best_chunks(query, top_k=3):
-
-    query_embedding = model.encode([query])
-
-    similarities = cosine_similarity(
-        query_embedding,
-        chunk_embeddings
-    )[0]
-
-    top_indices = np.argsort(similarities)[-top_k:][::-1]
-
-    results = []
-
-    for idx in top_indices:
-
-        results.append(chunks[idx])
-
-    return results
-
-# =========================
-# SIMPLIFY TEXT
-# =========================
-
-def simplify_text(text):
-
-    simplified = text
-
-    for hard_word, easy_word in simple_words.items():
-
-        simplified = re.sub(
-            hard_word,
-            easy_word,
-            simplified,
-            flags=re.IGNORECASE
-        )
-
-    return simplified
-
-# =========================
-# FORMAT RESPONSE
-# =========================
-
-def generate_answer(query, found_chunks):
-
-    combined_text = "\n\n".join(found_chunks)
-
-    query_lower = query.lower()
-
-    # =========================
-    # SIMPLE EXPLAIN MODE
-    # =========================
-
-    if (
-        "простыми словами" in query_lower
-        or "объясни" in query_lower
-        or "легко" in query_lower
-        or "как учитель" in query_lower
-    ):
-
-        simplified = simplify_text(combined_text)
-
-        return (
-            "📘 Объяснение:\n\n"
-            + simplified
-        )
-
-    # =========================
-    # WHAT IS MODE
-    # =========================
-
-    if (
-        "что такое" in query_lower
-        or "что значит" in query_lower
-        or "что означает" in query_lower
-    ):
-
-        return (
-            "📚 Определение:\n\n"
-            + combined_text
-        )
-
-    # =========================
-    # DEFAULT
-    # =========================
-
-    return (
-        "📚 Информация из базы знаний:\n\n"
-        + combined_text
-    )
-
-# =========================
-# START
-# =========================
-
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-
-    await message.answer(
-        "🌐 Привет! Я Anime Characters Fight AI.\n\n"
-        "Я отвечаю используя базу знаний ACF.\n"
-        "Ты можешь спрашивать:\n"
-        "- Что такое 1-A\n"
-        "- Объясни outerversal\n"
-        "- Кто сильнее\n"
-        "- Объясни простыми словами\n"
-        "- Как работает tiering"
-    )
-
-# =========================
-# CHAT
-# =========================
+    await message.answer("Привет! Я твоя персональная нейросеть по ACF. Спрашивай что угодно, я не просто копирую базу, я её понимаю!")
 
 @dp.message()
 async def ai_chat(message: types.Message):
-
-    query = message.text.strip()
-
-    wait_msg = await message.answer(
-        "🧠 Анализирую информацию..."
-    )
-
+    wait_msg = await message.answer("🧠 Думаю...")
     try:
-
-        best_chunks = find_best_chunks(query)
-
-        answer = generate_answer(
-            query,
-            best_chunks
-        )
-
-        if len(answer) > 4000:
-            answer = answer[:4000]
-
+        answer = await generate_smart_answer(message.text)
         await wait_msg.edit_text(answer)
-
     except Exception as e:
-
-        print(f"Ошибка AI: {e}")
-
-        await wait_msg.edit_text(
-            f"❌ Ошибка AI: {e}"
-        )
-
-# =========================
-# MAIN
-# =========================
+        logging.error(f"Ошибка: {e}")
+        await wait_msg.edit_text("Ой, что-то в моих нейронных связях замкнуло...")
 
 async def main():
-
-    print(">>> ACF AI ЗАПУЩЕН <<<")
-
-    await bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
