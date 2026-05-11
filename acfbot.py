@@ -1,30 +1,13 @@
-import asyncio
-import logging
-import requests
 import os
-
-from aiogram import Bot, Dispatcher, F
+import requests
+from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
-from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
-
-# ==========================================
-# ПЕРЕМЕННЫЕ
-# ==========================================
+from aiogram.filters import CommandStart
+import asyncio
 
 TOKEN = os.getenv("BOT_TOKEN")
-
 API_URL = os.getenv("KAGGLE_API")
-
-# ==========================================
-# ЛОГИ
-# ==========================================
-
-logging.basicConfig(level=logging.INFO)
-
-# ==========================================
-# BOT
-# ==========================================
 
 bot = Bot(
     token=TOKEN,
@@ -35,29 +18,9 @@ bot = Bot(
 
 dp = Dispatcher()
 
-# ==========================================
-# ОБРАБОТКА СООБЩЕНИЙ
-# ==========================================
 
-@dp.message(F.text)
-async def chat(message: Message):
-
-    user_text = message.text
-
-    # ======================================
-    # СООБЩЕНИЕ ОЖИДАНИЯ
-    # ======================================
-
-    wait_message = await message.answer(
-        "_ACF AI думает, подождите пожалуйста! 🧡_"
-    )
-
-    # ======================================
-    # PROMPT
-    # ======================================
-
-    prompt = f"""
-Ты — профессиональная русскоязычная нейросеть по ACF.
+SYSTEM_PROMPT = """
+Ты профессиональная русскоязычная нейросеть по ACF.
 
 ТВОИ ПРАВИЛА:
 
@@ -76,79 +39,64 @@ async def chat(message: Message):
 - Иногда вставляй цитаты ACF.
 - Формат цитаты:
 > текст цитаты
-- Весь основной текст всегда делай ЖИРНЫМ:
-**пример текста**
-- Не пиши код если пользователь не просил.
-- Ответ должен идеально выглядеть в Telegram.
 
-Вопрос пользователя:
-{user_text}
+- Весь основной текст всегда делай ЖИРНЫМ.
+- Не пиши код если пользователь не просит.
 """
 
-    # ======================================
-    # ЗАПРОС К API
-    # ======================================
+
+@dp.message(CommandStart())
+async def start(message: types.Message):
+    await message.answer(
+        "*ACF Artificial Intelligence подключен 🧡*"
+    )
+
+
+@dp.message()
+async def chat(message: types.Message):
+
+    thinking = await message.answer(
+        "_ACF AI думает, подождите пожалуйста! 🧡_"
+    )
 
     try:
+        prompt = f"""
+{SYSTEM_PROMPT}
+
+Пользователь: {message.text}
+
+Ответ:
+"""
 
         response = requests.post(
-            f"{API_URL}/generate",
-            json={"text": prompt},
-            timeout=180
+            API_URL,
+            json={"prompt": prompt},
+            timeout=300
         )
 
         data = response.json()
 
-        answer = data.get(
-            "answer",
-            "Ошибка ответа модели."
-        )
+        answer = data.get("answer", "")
 
-        # ======================================
-        # ОЧИСТКА
-        # ======================================
+        # Убираем промпт из ответа
+        if "Ответ:" in answer:
+            answer = answer.split("Ответ:")[-1].strip()
 
-        answer = answer.replace("```", "")
-        answer = answer.replace("markdown", "")
-        answer = answer.replace("text", "")
-        answer = answer.strip()
+        # Делаем весь текст жирным
+        answer = f"*{answer}*"
 
-        # ======================================
-        # ЖИРНЫЙ ТЕКСТ
-        # ======================================
-
-        if not answer.startswith("**"):
-            answer = f"**{answer}**"
-
-        # ======================================
-        # УДАЛЯЕМ WAIT MESSAGE
-        # ======================================
-
-        await wait_message.delete()
-
-        # ======================================
-        # ОТПРАВКА
-        # ======================================
-
-        await message.answer(answer)
+        await thinking.edit_text(answer)
 
     except Exception as e:
-
-        await wait_message.delete()
-
-        await message.answer(
-            f"**Ошибка сервера:**\n`{e}`"
+        await thinking.edit_text(
+            f"Ошибка:\n`{e}`"
         )
 
-# ==========================================
-# START
-# ==========================================
 
 async def main():
-
-    print("<<< БОТ ЗАПУЩЕН >>>")
-
+    print(">>> БОТ ЗАПУЩЕН <<<")
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
