@@ -1,10 +1,11 @@
 import os
 import requests
+import asyncio
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
-import asyncio
 
 TOKEN = os.getenv("BOT_TOKEN")
 API_URL = os.getenv("KAGGLE_API")
@@ -17,7 +18,6 @@ bot = Bot(
 )
 
 dp = Dispatcher()
-
 
 SYSTEM_PROMPT = """
 Ты профессиональная русскоязычная нейросеть по ACF.
@@ -37,7 +37,8 @@ SYSTEM_PROMPT = """
 - Пиши красиво и естественно.
 - Ответ должен выглядеть дорого и аккуратно.
 - Иногда вставляй цитаты ACF.
-- Формат цитаты:
+
+Формат цитаты:
 > текст цитаты
 
 - Весь основной текст всегда делай ЖИРНЫМ.
@@ -60,6 +61,7 @@ async def chat(message: types.Message):
     )
 
     try:
+
         prompt = f"""
 {SYSTEM_PROMPT}
 
@@ -76,20 +78,30 @@ async def chat(message: types.Message):
 
         data = response.json()
 
-        answer = data.get("answer", "")
+        answer = data.get("answer", "").strip()
 
-        # Убираем промпт из ответа
+        # убираем промпт если модель его вернула
         if "Ответ:" in answer:
             answer = answer.split("Ответ:")[-1].strip()
 
-        # Делаем весь текст жирным
+        # если пусто
+        if not answer:
+            answer = "Не удалось сгенерировать ответ."
+
+        # экранирование markdown
+        answer = answer.replace("*", "\\*")
+        answer = answer.replace("_", "\\_")
+        answer = answer.replace("`", "\\`")
+
+        # жирный текст
         answer = f"*{answer}*"
 
         await thinking.edit_text(answer)
 
     except Exception as e:
+
         await thinking.edit_text(
-            f"Ошибка:\n`{e}`"
+            f"`Ошибка: {str(e)}`"
         )
 
 
