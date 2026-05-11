@@ -37,7 +37,7 @@ async def ai(message: Message):
 
         data = r.json()
 
-        answer = data["response"]
+        answer = data["answer"]
 
     except Exception as e:
 
