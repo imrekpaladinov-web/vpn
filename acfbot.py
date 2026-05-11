@@ -6,8 +6,8 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 import asyncio
 
-TOKEN = os.getenv("TOKEN")
-API_URL = os.getenv("API_URL")
+TOKEN = os.getenv("BOT_TOKEN")
+API_URL = os.getenv("KAGGLE_API")
 
 bot = Bot(
     token=TOKEN,
