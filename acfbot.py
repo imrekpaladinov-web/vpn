@@ -1,79 +1,128 @@
 import os
-import asyncio
 import requests
-
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import Message
+import asyncio
 
-TOKEN = os.getenv("BOT_TOKEN")
-API_URL = os.getenv("KAGGLE_API")
+TOKEN = os.getenv("TOKEN")
+API_URL = os.getenv("API_URL")
 
 bot = Bot(
     token=TOKEN,
     default=DefaultBotProperties(
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.MARKDOWN
     )
 )
 
 dp = Dispatcher()
 
 
-@dp.message(F.text)
-async def chat(message: Message):
+@dp.message()
+async def handle_message(message: Message):
 
+    # Игнорируем команды
+    if not message.text:
+        return
+
+    if message.text.startswith("/"):
+        return
+
+    # Сообщение ожидания
     wait_msg = await message.answer(
-        "<i>ACF AI думает, подождите пожалуйста! 🧡</i>"
+        "_ACF AI думает, подождите пожалуйста! 🧡_"
     )
 
     try:
 
+        payload = {
+            "prompt": message.text
+        }
+
         response = requests.post(
-            f"{API_URL}/generate",
-            json={
-                "text": message.text
-            },
-            timeout=300
+            API_URL,
+            json=payload,
+            timeout=180
         )
+
+        # Проверка ответа
+        if response.status_code != 200:
+            await wait_msg.delete()
+
+            await message.answer(
+                "Ошибка API."
+            )
+            return
 
         data = response.json()
 
-        print(data)
+        answer = data.get("answer", "")
 
-        # поддержка любых ответов от kaggle
-        answer = (
-            data.get("answer")
-            or data.get("response")
-            or data.get("text")
-            or str(data)
-        )
-
+        # Если пусто
         if not answer:
-            answer = "Не удалось получить ответ."
+            answer = "Не удалось сгенерировать ответ."
 
-        # ограничение telegram
+        # Убираем мусор markdown
+        answer = answer.replace("```", "")
+        answer = answer.replace("###", "")
+        answer = answer.replace("##", "")
+        answer = answer.replace("#", "")
+        answer = answer.replace("**", "")
+        answer = answer.replace("__", "")
+
+        # Убираем возможный системный промпт
+        bad_phrases = [
+            "ТВОИ ПРАВИЛА",
+            "Ты — профессиональная",
+            "SYSTEM_PROMPT",
+            "Пользователь:",
+            "Ассистент:"
+        ]
+
+        for phrase in bad_phrases:
+            if phrase in answer:
+                answer = "Не удалось сгенерировать ответ."
+                break
+
+        answer = answer.strip()
+
+        # Telegram не любит пустой текст
+        if len(answer.strip()) == 0:
+            answer = "Не удалось сгенерировать ответ."
+
+        # Ограничение Telegram
         answer = answer[:4000]
 
-        # жирный текст
-        answer = f"<b>{answer}</b>"
+        # Делаем текст жирным
+        answer = f"*{answer}*"
 
-        await wait_msg.delete()
+        # Удаляем сообщение ожидания
+        try:
+            await wait_msg.delete()
+        except:
+            pass
 
+        # Отправляем ответ
         await message.answer(answer)
 
     except Exception as e:
 
-        await wait_msg.delete()
+        print("ERROR:", e)
+
+        try:
+            await wait_msg.delete()
+        except:
+            pass
 
         await message.answer(
-            f"<b>Ошибка:</b>\n<code>{e}</code>"
+            "Не удалось сгенерировать ответ."
         )
 
 
 async def main():
 
-    print("BOT STARTED")
+    print(">>> BOT STARTED <<<")
 
     await dp.start_polling(bot)
 
