@@ -6,6 +6,7 @@ import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.types import Message
+from aiogram.client.default import DefaultBotProperties
 
 # ==========================================
 # ПЕРЕМЕННЫЕ
@@ -27,7 +28,9 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(
     token=TOKEN,
-    parse_mode=ParseMode.MARKDOWN
+    default=DefaultBotProperties(
+        parse_mode=ParseMode.MARKDOWN
+    )
 )
 
 dp = Dispatcher()
@@ -83,7 +86,7 @@ async def chat(message: Message):
 """
 
     # ======================================
-    # ЗАПРОС К KAGGLE API
+    # ЗАПРОС К API
     # ======================================
 
     try:
@@ -143,7 +146,7 @@ async def chat(message: Message):
 
 async def main():
 
-    print("ACF BOT STARTED")
+    print("<<< БОТ ЗАПУЩЕН >>>")
 
     await dp.start_polling(bot)
 
