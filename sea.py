@@ -5,12 +5,22 @@ import os
 
 from telethon import TelegramClient
 from telethon.tl.functions.account import CheckUsernameRequest
-from telethon.errors import SessionPasswordNeededError
+from telethon.errors import (
+    SessionPasswordNeededError,
+    FloodWaitError
+)
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
-from aiogram.client.default import DefaultBotProperties
+from aiogram.utils.keyboard import (
+    ReplyKeyboardBuilder,
+    InlineKeyboardBuilder
+)
+
+from aiogram.client.default import (
+    DefaultBotProperties
+)
+
 from aiogram.enums import ParseMode
 
 # --- КОНФИГУРАЦИЯ ЧЕРЕЗ ПЕРЕМЕННЫЕ ОС ---
@@ -19,7 +29,11 @@ API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN1")
 ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
-client = TelegramClient("session_ghost", API_ID, API_HASH)
+client = TelegramClient(
+    "session_ghost",
+    API_ID,
+    API_HASH
+)
 
 user_settings = {}
 user_stats = {}
@@ -27,42 +41,107 @@ used_usernames = set()
 
 
 class SmartGenerator:
+
     V = "aeiouy"
     C = "bcdfghjklmnpqrstvwxz"
     D = "0123456789"
+
+    BEAUTY_PATTERNS = [
+        "double",
+        "mirror",
+        "wave",
+        "soft",
+        "mix"
+    ]
 
     @classmethod
     def generate_exact(cls, length, use_digits=False):
 
         chars = [
-            random.choice(cls.C if i % 2 == 0 else cls.V)
+            random.choice(
+                cls.C if i % 2 == 0 else cls.V
+            )
             for i in range(length)
         ]
 
         if use_digits:
-            pos = random.randint(1, length - 1)
-            chars[pos] = random.choice(cls.D)
+
+            pos = random.randint(
+                1,
+                length - 1
+            )
+
+            chars[pos] = random.choice(
+                cls.D
+            )
 
         return "".join(chars)
 
     @classmethod
     def generate_beauty_fast(cls):
 
-        word = "".join(
-            random.choice(cls.C + cls.V)
-            for _ in range(4)
+        pattern = random.choice(
+            cls.BEAUTY_PATTERNS
         )
 
-        suffix = random.choice([
-            "hub",
-            "top",
-            "pro",
-            "web",
-            "link",
-            "zone"
-        ])
+        # типа xoxo / bubu / koko
+        if pattern == "double":
 
-        return f"{word}_{suffix}"
+            a = random.choice(cls.C)
+            b = random.choice(cls.V)
+
+            name = (
+                a + b +
+                a + b +
+                random.choice(cls.C + cls.V)
+            )
+
+        # типа veev / lolol / rerer
+        elif pattern == "mirror":
+
+            a = random.choice(cls.C + cls.V)
+            b = random.choice(cls.C + cls.V)
+
+            name = (
+                a + b +
+                b + a +
+                random.choice(cls.C + cls.V)
+            )
+
+        # типа noava / leomi
+        elif pattern == "wave":
+
+            name = "".join([
+                random.choice(cls.C),
+                random.choice(cls.V),
+                random.choice(cls.V),
+                random.choice(cls.C),
+                random.choice(cls.V)
+            ])
+
+        # типа miura / leona
+        elif pattern == "soft":
+
+            name = "".join([
+                random.choice(cls.C),
+                random.choice(cls.V),
+                random.choice(cls.C),
+                random.choice(cls.V),
+                random.choice(cls.C),
+                random.choice(cls.V)
+            ])
+
+        # случайный красивый
+        else:
+
+            length = random.randint(5, 8)
+
+            name = "".join([
+                random.choice(cls.C + cls.V)
+                for _ in range(length)
+            ])
+
+        return name.lower()
 
 
 bot = Bot(
@@ -86,7 +165,9 @@ def get_main_menu():
 
     builder.adjust(2, 1, 1)
 
-    return builder.as_markup(resize_keyboard=True)
+    return builder.as_markup(
+        resize_keyboard=True
+    )
 
 
 @dp.message(Command("start"))
@@ -135,7 +216,9 @@ async def cmd_filters(m: types.Message):
 
 
 @dp.callback_query(F.data.startswith("set_digits_"))
-async def handle_filter_change(c: types.CallbackQuery):
+async def handle_filter_change(
+    c: types.CallbackQuery
+):
 
     mode = c.data == "set_digits_on"
 
@@ -143,14 +226,19 @@ async def handle_filter_change(c: types.CallbackQuery):
         "digits": mode
     }
 
-    await c.answer("Настройки обновлены")
+    await c.answer(
+        "Настройки обновлены"
+    )
 
     await c.message.edit_text(
         f"<b>✅ Настройки обновлены: {'С цифрами 🔢' if mode else 'Без цифр 🔤'}</b>"
     )
 
 
-async def perform_search(m: types.Message, mode: str):
+async def perform_search(
+    m: types.Message,
+    mode: str
+):
 
     user_id = m.from_user.id
 
@@ -197,7 +285,7 @@ async def perform_search(m: types.Message, mode: str):
 
     found = None
 
-    for _ in range(5000):
+    for _ in range(500):
 
         if mode == "5":
 
@@ -221,11 +309,27 @@ async def perform_search(m: types.Message, mode: str):
 
             try:
 
+                if not client.is_connected():
+
+                    print(
+                        "RECONNECTING TELETHON..."
+                    )
+
+                    await client.connect()
+
+                    print(
+                        "TELETHON RECONNECTED"
+                    )
+
                 result = await client(
                     CheckUsernameRequest(name)
                 )
 
-                print(f"CHECKED {name}: {result}")
+                print(
+                    f"CHECKED {name}: {result}"
+                )
+
+                await asyncio.sleep(0.4)
 
                 if result:
 
@@ -235,9 +339,44 @@ async def perform_search(m: types.Message, mode: str):
 
                     break
 
+            except FloodWaitError as e:
+
+                print(
+                    f"FLOOD WAIT: {e.seconds} sec"
+                )
+
+                await asyncio.sleep(
+                    e.seconds
+                )
+
             except Exception as e:
 
-                print(f"CHECK ERROR: {e}")
+                print(
+                    f"CHECK ERROR: {e}"
+                )
+
+                try:
+
+                    await client.disconnect()
+
+                except:
+                    pass
+
+                await asyncio.sleep(3)
+
+                try:
+
+                    await client.connect()
+
+                    print(
+                        "TELETHON RECONNECTED"
+                    )
+
+                except Exception as reconnect_error:
+
+                    print(
+                        f"RECONNECT ERROR: {reconnect_error}"
+                    )
 
                 continue
 
@@ -271,7 +410,9 @@ async def perform_search(m: types.Message, mode: str):
         "Красивый юзернейм 🗒️"
     ])
 )
-async def handle_menu_buttons(m: types.Message):
+async def handle_menu_buttons(
+    m: types.Message
+):
 
     if "5 БУКВ" in m.text:
 
